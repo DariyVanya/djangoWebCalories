@@ -1,0 +1,19 @@
+
+<tr class="meal-item">
+    <th class="meal-name"> <a href="meal/{{ meal.id }}">{{ meal.name }} </a> </th>
+    <th class="meal-grams"> {{ meal.grams }} grams </th>
+    {% comment %} <th class="meal-recipe-header"> Recipe </th> {% endcomment %}
+    {% comment %} <th class="meal-link-header"> Recipe Link </th> {% endcomment %}
+</tr>
+
+
+
+    {% comment %} <p class="meal-name"> {{ meal.name }} </p>
+    <p class="meal-grams"> {{ meal.grams }} grams </p> {% endcomment %}
+    {% comment %} <p class="meal-recipe"> {{ meal.recipe }} </p> {% endcomment %}
+    {% comment %} <p class="meal-link"> <a href="{{ meal.link }}">Recipe Link</a> </p> {% endcomment %}
+    {% comment %} <div class="meal-food-items">
+        {% for food in meal.mealproducts_set.all %}
+            {% include 'meals/foodItem.html' with food=food.food %}
+        {% endfor %}
+    </div> {% endcomment %}

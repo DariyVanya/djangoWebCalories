@@ -1,0 +1,29 @@
+{% extends "main/layout.html" %}
+
+{% block title %}
+    {{ meal.name }}
+{% endblock %}
+
+{% block content %}
+<div class="meal-item">
+    <table style="width: 100%;">
+    <tr>
+        <th>
+            <h2 class="meal-name"> {{ meal.name }} </h2>
+        </th>
+        <th>
+            <button class="btn btn-secondary rounded-pill px-3" onclick="window.history.back()">Go Back</button>
+        </th>
+    </tr>
+    </table>
+    <p class="meal-grams"> {{ meal.grams }} grams </p>
+    <p class="meal-recipe"> {{ meal.recipe }} </p> 
+    <p class="meal-link"> <a href="{{ meal.link }}">Recipe Link</a> </p> 
+    <p>Food Items:</p>
+    <div class="meal-food-items">
+        {% for food in meal.mealproducts_set.all %}
+            {% include 'meals/foodItem.html' with food=food.food %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

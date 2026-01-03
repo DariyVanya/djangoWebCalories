@@ -1,0 +1,17 @@
+{% extends "main/layout.html" %}
+
+{% block title %}
+    Meals
+{% endblock %}
+
+{% block content %}
+    <h1>Meals receipts</h1>
+    <p>This is page for searching meals and ways to cook it</p>
+    <div class="meals-list">
+        <table>
+            {% for meal in meals %}
+                {% include 'meals/mealItem.html' with meal=meal %}
+            {% endfor %}
+        </table>
+    </div>
+{% endblock %}
