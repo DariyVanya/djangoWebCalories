@@ -10,6 +10,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 </head>
 <body>
+
+    <header>
+         <table>
+            <tr>
+                <th style="text-align: left;">
+                    <a href="{% url 'home' %}"><h1>Calories Tracker</h1></a>
+                </th>
+                <th style="text-align: right;">
+                    {% if user.is_authenticated %}
+                        <a href="#"><span>{{ user.username }}</span></a>
+                        <a href="{% url 'logOut' %}"><span><i class="fa-solid fa-user"></i> Log Out</span></a>
+                    {% else %}
+                        <a href="{% url 'logIn' %}"><span><i class="fa-solid fa-user"></i> Log In</span></a>
+                        <a href="{% url 'signUp' %}"><span><i class="fa-solid fa-user"></i> Sign Up</span></a>
+                    {% endif %}
+                </th>
+            </tr>
+        </table>
+    </header>
+
     <aside>
         <img src="{% static 'main/img/logo.svg' %}" alt="aboba" width="15" height="15">
         <span class="logo">Calories Tracker</span>
@@ -43,8 +63,10 @@
         </ul>
     </aside>
     <main>
+        <div class="main-content">
         {% block content %}
         {% endblock %}
+        </div>
     </main>
     
 </body>

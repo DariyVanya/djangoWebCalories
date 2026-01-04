@@ -6,24 +6,35 @@
 
 {% block content %}
 <div class="meal-item">
-    <table style="width: 100%;">
+    <table style="width: 100%; ">
     <tr>
-        <th>
+        <td>
             <h2 class="meal-name"> {{ meal.name }} </h2>
-        </th>
-        <th>
+        </td>
+        <td style="text-align: right;">
             <button class="btn btn-secondary rounded-pill px-3" onclick="window.history.back()">Go Back</button>
-        </th>
+        </td>
     </tr>
     </table>
     <p class="meal-grams"> {{ meal.grams }} grams </p>
     <p class="meal-recipe"> {{ meal.recipe }} </p> 
     <p class="meal-link"> <a href="{{ meal.link }}">Recipe Link</a> </p> 
     <p>Food Items:</p>
-    <div class="meal-food-items">
+    <div class="food-items">
+        <table style="border-collapse: collapse;border-radius: 15px; overflow: hidden; width: 100%;">
+            <tr style="width: 20%; background-color: #f2f2f2;">
+                <th > Name </th>
+                <th > Type </th>
+                <th > Grams </th>
+                <th > Calories </th>
+                <th > Protein </th>
+                <th > Carbs </th>
+                <th > Fats </th>
+            </tr>
         {% for food in meal.mealproducts_set.all %}
             {% include 'meals/foodItem.html' with food=food.food %}
         {% endfor %}
+        </table>
     </div>
 </div>
 {% endblock %}
