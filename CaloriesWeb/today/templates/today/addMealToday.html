@@ -1,0 +1,28 @@
+{% extends "main/layout.html" %}
+
+{% block title %}
+    Add meal
+{% endblock %}
+
+{% block content %}
+    <form method="get">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search meal">
+    <button type="submit">Search</button>
+</form>
+
+<hr>
+
+{% for meal in meals %}
+    <form method="post">
+        {% csrf_token %}
+        <strong>{{ meal.name }}</strong>
+        <input type="number" name="grams" placeholder="grams" required>
+        <input type="hidden" name="meal_id" value="{{ meal.id }}">
+        <button type="submit">Add</button>
+    </form>
+{% empty %}
+    {% if query %}
+        <p>No meals found</p>
+    {% endif %}
+{% endfor %}
+{% endblock %}

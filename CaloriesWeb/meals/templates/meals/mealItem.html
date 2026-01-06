@@ -1,10 +1,12 @@
 
+{% if meal != '' %}
 <tr class="meal-item">
-    <td class="meal-name"> <a href="meal/{{ meal.id }}">{{ meal.name }} </a> </td>
+    <td class="meal-name"> <a href="{% url 'meal_detail' meal.id %}">{{ meal.name }} </a> </td>
     <td class="meal-grams"> {{ meal.grams }} grams </td>
     {% comment %} <th class="meal-recipe-header"> Recipe </th> {% endcomment %}
     {% comment %} <th class="meal-link-header"> Recipe Link </th> {% endcomment %}
 </tr>
+{% endif %}
 
 
 

@@ -7,4 +7,27 @@
 {% block content %}
     <h1>Today meals</h1>
     <p>Here you can add food, eaten today</p>
+    {% if user.is_authenticated %}
+    <a href="{% url 'addMeal' %}">Add meal</a>
+
+    <ul>
+    {% for entry in entries %}
+        <p>
+            <a href="{% url 'meal_detail' entry.meal.id %}">{{ entry.meal.name }}</a> —
+            {{ entry.grams }} g
+        </p>
+        {% empty %}
+            <p>No meals today</p>
+    {% endfor %}
+    </ul>
+
+    <h3>Todays Calories</h3>
+    <p>{{ cpfc.calories }} kcal</p>
+    <p>Protein: {{ cpfc.protein }} g</p>
+    <p>Carbs: {{ cpfc.carbs }} g</p>
+    <p>Fats: {{ cpfc.fats }} g</p>
+    {% else %}
+        <p>Please <a href="{% url 'logIn' %}">log in</a> to track your meals.</p>
+    {% endif %}
+
 {% endblock %}

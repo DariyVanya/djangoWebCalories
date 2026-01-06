@@ -123,23 +123,23 @@ main .main-content{
     margin-bottom: 10px;
 }
 
-.food-items {
+/* .food-items {
     border: 1px solid black;
     border-radius: 15px;
     width: fit-content;
-}
+} */
 
 /* .food-item table {
     border-collapse: collapse;
     width: 100%;
 } */
 
-.food-items table th, .food-items table td {
+/* .food-items table th, .food-items table td {
     padding: 5px;
     text-align: left;
     border: 1px solid black;
     width: 10%;
-}
+} */
 
 /* .meals-list table {
     width: 100%;

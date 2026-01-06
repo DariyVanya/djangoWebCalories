@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="meal-item">
+<div class="card meal-detailed-card" style="padding: 20px;">
     <table style="width: 100%; ">
     <tr>
         <td>
@@ -16,13 +16,16 @@
         </td>
     </tr>
     </table>
+    <p class="meal-autor"> Author: {{ meal.author }}</p>
     <p class="meal-grams"> {{ meal.grams }} grams </p>
-    <p class="meal-recipe"> {{ meal.recipe }} </p> 
+    <p class="list-group meal-recipe"> {{ meal.recipe }} </p> 
     <p class="meal-link"> <a href="{{ meal.link }}">Recipe Link</a> </p> 
     <p>Food Items:</p>
     <div class="food-items">
-        <table style="border-collapse: collapse;border-radius: 15px; overflow: hidden; width: 100%;">
-            <tr style="width: 20%; background-color: #f2f2f2;">
+        {% comment %} <table style="border-collapse: collapse;border-radius: 15px; overflow: hidden; width: 100%;"> {% endcomment %}
+        <table class="table table-bordered">    
+            {% comment %} <tr style="width: 20%; background-color: #f2f2f2;"> {% endcomment %}
+            <tr>
                 <th > Name </th>
                 <th > Type </th>
                 <th > Grams </th>
@@ -36,5 +39,30 @@
         {% endfor %}
         </table>
     </div>
+    <form method="post" action="{% url 'meal_detail' meal.id %}">
+    {% csrf_token %}
+        <div class="card", style="width: 25rem; margin-top: 20px;">
+            <div class="card-header">
+                <p class="card-title">Calculate:</p>
+                <table>
+                    <tr>
+                        <td><input type="number" name="grams" value="{{ grams }}" class="form-control"></td>
+
+                        <td><button class="btn btn-primary rounded-pill px-2" type="submit">Update Meal</button></td>
+                    </tr>
+                </table>
+
+                
+
+            </div>
+            <h4 style="margin-left: 10px;" class="card-title">Totals:</h4>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">Calories: {{ cpfc.calories }} kcal</li>
+                <li class="list-group-item">Protein: {{ cpfc.protein }} g</li>
+                <li class="list-group-item">Carbs: {{ cpfc.carbs }} g</li>
+                <li class="list-group-item">Fats: {{ cpfc.fats }} g</li>
+            </ul>
+        </div>
+    </form>
 </div>
 {% endblock %}
