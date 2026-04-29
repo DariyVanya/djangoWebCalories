@@ -1,10 +1,99 @@
 {% extends "main/layout.html" %}
 
 {% block title %}
-    Home Page
+    Головна
 {% endblock %}
 
 {% block content %}
-    <h1>Welcome to the Calories Tracker</h1>
-    <p>Track your daily calorie intake and stay healthy!</p>
+    <section class="home-hero">
+        <div class="home-hero__content">
+            <p class="home-eyebrow">Персональний контроль харчування</p>
+            <h1>Слідкуйте за калоріями без хаосу та таблиць</h1>
+            <p class="home-hero__lead">
+                Плануйте прийоми їжі, відмічайте прогрес і тримайте денний баланс під контролем у
+                кілька кліків.
+            </p>
+
+            <div class="home-hero__actions">
+                <a class="btn btn-primary" href="{% url 'today:today' %}">
+                    <i class="fa-solid fa-bolt"></i>
+                    Перейти до сьогодні
+                </a>
+                <a class="btn btn-outline-danger home-secondary-btn" href="{% url 'meals:meals' %}">
+                    <i class="fa-solid fa-bowl-food"></i>
+                    Переглянути страви
+                </a>
+            </div>
+
+            <div class="home-mini-stats">
+                <div>
+                    <strong>24/7</strong>
+                    <span>доступ до щоденника</span>
+                </div>
+                <div>
+                    <strong>1 місце</strong>
+                    <span>для страв, плану і прогресу</span>
+                </div>
+                <div>
+                    <strong>швидко</strong>
+                    <span>додавайте записи без зайвих кроків</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="home-hero__panel">
+            <div class="home-card home-card--accent">
+                <span class="home-card__label">Сьогодні</span>
+                <h2>Баланс під контролем</h2>
+                <p>Зручно фіксуйте прийоми їжі та бачте, скільки ще лишилось до вашої цілі.</p>
+            </div>
+
+            <div class="home-grid">
+                <article class="home-card">
+                    <span class="home-card__icon"><i class="fa-solid fa-apple-whole"></i></span>
+                    <h3>Страви</h3>
+                    <p>Зберігайте улюблені варіанти та повертайтесь до них у будь-який момент.</p>
+                </article>
+
+                <article class="home-card">
+                    <span class="home-card__icon"><i class="fa-solid fa-chart-line"></i></span>
+                    <h3>Прогрес</h3>
+                    <p>Відслідковуйте звички й бачте, як змінюється ваш щоденний ритм.</p>
+                </article>
+
+                <article class="home-card">
+                    <span class="home-card__icon"><i class="fa-solid fa-seedling"></i></span>
+                    <h3>Звички</h3>
+                    <p>Формуйте стабільну систему харчування без перевантаження й складних налаштувань.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-section">
+        <div class="home-section__header">
+            <p class="home-eyebrow">Що всередині</p>
+            <h2>Усе, що потрібно для щоденного трекінгу</h2>
+        </div>
+
+        <div class="home-features">
+            <div class="home-feature">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <h3>Швидкий запис</h3>
+                <p>Додавайте їжу та значення без зайвих переходів.</p>
+            </div>
+
+            <div class="home-feature">
+                <i class="fa-solid fa-shield-heart"></i>
+                <h3>Контроль цілей</h3>
+                <p>Орієнтуйтесь на власний план і не губіть його серед дрібниць.</p>
+            </div>
+
+            <div class="home-feature">
+                <i class="fa-solid fa-user-check"></i>
+                <h3>Персональний підхід</h3>
+                <p>Сервіс підлаштовується під ваш ритм і звички харчування.</p>
+            </div>
+        </div>
+    </section>
 {% endblock %}

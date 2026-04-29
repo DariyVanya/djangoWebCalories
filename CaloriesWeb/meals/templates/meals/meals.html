@@ -1,17 +1,146 @@
 {% extends "main/layout.html" %}
+{% load static %}
 
 {% block title %}
-    Meals
+    Страви
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'meals/css/meals.css' %}?v=1">
 {% endblock %}
 
 {% block content %}
-    <h1>Meals receipts</h1>
-    <p>This is page for searching meals and ways to cook it</p>
+
+    {% if user.is_authenticated and user_details.date_last_streak_entry == yesterday_date %}
+        <div class="streak-banner streak-warn streak-banner--meals">
+            <div class="streak-icon">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="streak-body">
+                <div class="streak-copy">
+                    <!-- <span class="streak-count">{{ streak_info.current_streak }}</span> -->
+                    <span class="streak-label">У вас не оновлена серія!</span>
+                </div>
+                <span class="streak-max">Не втратьте темп. Додайте сьогоднішній запис і збережіть ритм.</span>
+            </div>
+            <a href="{% url 'today:today' %}" class="streak-link streak-link--button">Продовжити →</a>
+        </div>
+    {% endif %}
+
+    <h1>Страви та рецепти</h1>
+    <p>Переглядайте та керуйте улюбленими рецептами</p>
+    <div class="meal-header-actions">
+        <div class="meal-filters">
+            <details class="meal-filter-panel" {% if panel_open %}open{% endif %}>
+                <summary class="meal-filter-toggle">Фільтрація</summary>
+                <form method="get" class="meal-filter-form">
+                    <div class="meal-filter-row">
+                        <label class="meal-filter-option meal-filter-favorites-option">
+                            <input type="checkbox" name="favourites" value="1" {% if favourites_only %}checked{% endif %} onchange="submitMealFilters(this)">
+                            Тільки улюблені
+                        </label>
+                        {% if grouped_tags %}
+                            <div class="meal-filter-groups">
+                            {% for group in grouped_tags %}
+                                <details class="meal-filter-group" data-group="{{ group.type }}" {% if group.type in open_groups %}open{% endif %}>
+                                    <summary>{{ group.type }}</summary>
+                                    <div class="meal-filter-options">
+                                        {% for tag in group.tags %}
+                                            <label class="meal-filter-option">
+                                                <input type="checkbox" name="tag" value="{{ tag.id }}" {% if tag.id in selected_tag_ids %}checked{% endif %} onchange="submitMealFilters(this)">
+                                                {{ tag.name }}
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                            {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>Теги поки що не додані.</p>
+                        {% endif %}
+                        {% if selected_tag_ids or favourites_only %}
+                            <div class="meal-filter-actions">
+                                <a href="{% url 'meals:meals' %}" class="btn btn-primary">Скинути</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </form>
+            </details>
+        </div>
+
+        <div class="meal-add-wrap">
+            {% if can_create_meal %}
+                <a href="{% url 'meals:add_meal' %}" class="btn btn-primary meal-add-button">
+                    <i class="fas fa-plus"></i> Додати страву
+                </a>
+            {% else %}
+                <a class="btn btn-primary meal-add-button">
+                    <i class="fas fa-plus"></i> Додати страву
+                </a>
+                <p class="meal-actions-note">Щоб додати страву, досягніть серії 30</p>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <script>
+        function submitMealFilters(checkbox) {
+            var form = checkbox.form;
+            var filterPanel = form.closest('.meal-filter-panel');
+
+            form.querySelectorAll('input[name="open_group"]').forEach(function (el) {
+                el.remove();
+            });
+            form.querySelectorAll('input[name="filter_open"]').forEach(function (el) {
+                el.remove();
+            });
+
+            form.querySelectorAll('.meal-filter-group[open]').forEach(function (groupEl) {
+                var groupName = groupEl.getAttribute('data-group');
+                if (!groupName) return;
+
+                var hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'open_group';
+                hidden.value = groupName;
+                form.appendChild(hidden);
+            });
+
+            var currentGroup = checkbox.closest('.meal-filter-group');
+            if (currentGroup) {
+                var currentGroupName = currentGroup.getAttribute('data-group');
+                var alreadyAdded = Array.from(form.querySelectorAll('input[name="open_group"]')).some(function (el) {
+                    return el.value === currentGroupName;
+                });
+                if (currentGroupName && !alreadyAdded) {
+                    var currentHidden = document.createElement('input');
+                    currentHidden.type = 'hidden';
+                    currentHidden.name = 'open_group';
+                    currentHidden.value = currentGroupName;
+                    form.appendChild(currentHidden);
+                }
+            }
+
+            if (filterPanel && filterPanel.open) {
+                var panelHidden = document.createElement('input');
+                panelHidden.type = 'hidden';
+                panelHidden.name = 'filter_open';
+                panelHidden.value = '1';
+                form.appendChild(panelHidden);
+            }
+
+            form.submit();
+        }
+    </script>
+
     <div class="meals-list">
-        <table>
-            {% for meal in meals %}
-                {% include 'meals/mealItem.html' with meal=meal %}
-            {% endfor %}
-        </table>
+        {% for meal in meals %}
+            {% include 'meals/mealItem.html' with meal=meal %}
+        {% empty %}
+            <div class="meals-empty">
+                <i class="fas fa-search"></i>
+                <p>Страв не знайдено. Почніть з додавання нової страви!</p>
+            </div>
+        {% endfor %}
     </div>
 {% endblock %}

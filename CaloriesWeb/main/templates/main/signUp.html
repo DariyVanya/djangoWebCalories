@@ -1,11 +1,11 @@
 {% extends "main/logTemplate.html" %}
 
 {% block title %}
-    Log In
+    Реєстрація
 {% endblock %}
 
 {% block content %}
-    <h2>Sign Up</h2>
+    <h2>Реєстрація</h2>
 
     <form method="post">
         {% csrf_token %}
@@ -22,5 +22,5 @@
         {{ form.password2 }}
 
         {{ form.errors }}
-        <button type="submit" class="btn btn-primary">Sign Up</button>
+        <button type="submit" class="btn btn-primary">Зареєструватися</button>
 {% endblock %}

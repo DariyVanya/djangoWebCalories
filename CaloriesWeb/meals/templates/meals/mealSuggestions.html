@@ -1,0 +1,358 @@
+{% extends "main/layout.html" %}
+{% load static %}
+
+{% block title %}
+    Підбір страв
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'meals/css/meal_suggestions.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+<div class="suggest-page">
+    <section class="suggest-hero">
+        <div>
+            <h1>Підбір страв за наявними продуктами</h1>
+            <p>Оберіть продукти, додайте грамовку та теги — і сайт запропонує найкращі варіанти страв.</p>
+        </div>
+        <a href="{% url 'meals:suggestions' %}" class="suggest-secondary-btn suggest-hero-reset">Очистити форму</a>
+    </section>
+
+    <form method="post" class="suggest-form" id="suggestions-form">
+        {% csrf_token %}
+
+        <div class="suggest-grid">
+            <section class="suggest-card">
+                <h3>1) Продукти, які є в наявності</h3>
+
+                <div class="suggest-search-row">
+                    <div class="suggest-autocomplete" id="food-autocomplete">
+                        <input type="text" id="food-picker" placeholder="Почніть вводити назву продукту..." autocomplete="off">
+                        <div class="suggest-autocomplete-list" id="food-suggestions"></div>
+                    </div>
+                    <input type="number" id="food-grams" placeholder="Грамів" min="1" step="0.1">
+                    <button type="button" id="add-food-btn">Додати</button>
+                </div>
+
+                <div class="suggest-selected-products" id="selected-products-list">
+                    {% for row in selected_food_rows %}
+                        <div class="suggest-product-item" data-food-id="{{ row.food_id }}">
+                            <div class="suggest-product-main">
+                                <strong>{{ row.food_name }}</strong>
+                                <span class="suggest-pill">{{ row.food_type }}</span>
+                            </div>
+                            <div class="suggest-product-controls">
+                                <label>грамів</label>
+                                <input type="number" class="selected-food-grams" value="{{ row.grams|floatformat:'-1' }}" min="0.1" step="0.1">
+                                <button type="button" class="suggest-remove-btn">✕</button>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="suggest-empty-note" id="empty-products-note">Ще не додано жодного продукту.</div>
+                    {% endfor %}
+                </div>
+
+                <div id="selected-products-hidden">
+                    {% for row in selected_food_rows %}
+                        <input type="hidden" name="food_id" value="{{ row.food_id }}" data-food-id="{{ row.food_id }}" data-field="id">
+                        <input type="hidden" name="food_grams" value="{{ row.grams|floatformat:'-1' }}" data-food-id="{{ row.food_id }}" data-field="grams">
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="suggest-card">
+                <h3>2) Додаткові теги (необов'язково)</h3>
+
+                <div class="suggest-match-filter">
+                    <label for="min-match">Мінімальний відсоток збігу</label>
+                    <div class="suggest-match-controls">
+                        <input id="min-match" type="range" name="min_match" min="0" max="100" step="5" value="{{ min_match_percent|default:0 }}">
+                        <span id="min-match-value">{{ min_match_percent|default:0 }}%</span>
+                    </div>
+                </div>
+
+                <div class="suggest-tag-groups suggest-tag-groups-collapsible">
+                    {% for group in grouped_tags %}
+                        <details class="suggest-tag-group" {% if group.has_selected %}open{% endif %}>
+                            <summary>{{ group.type }}</summary>
+                            <div class="suggest-tag-options">
+                                {% for tag in group.tags %}
+                                    <label>
+                                        <input type="checkbox" name="tag" value="{{ tag.id }}" {% if tag.id in selected_tag_ids %}checked{% endif %}>
+                                        {{ tag.name }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </details>
+                    {% empty %}
+                        <div class="suggest-empty-note">Теги відсутні.</div>
+                    {% endfor %}
+                </div>
+
+                <div class="suggest-actions-row">
+                    <button class="suggest-primary-btn" type="submit">Показати рекомендації</button>
+                    <button class="suggest-secondary-btn" type="button" id="clear-tags-btn">Очистити</button>
+                </div>
+            </section>
+        </div>
+    </form>
+
+    <section class="suggest-card suggest-results-card">
+        <div class="suggest-results-head">
+            <h3>3) Рекомендовані страви</h3>
+            <span>Знайдено: {{ results|length }}{% if was_submitted %} · від {{ min_match_percent }}%{% endif %}</span>
+        </div>
+
+        {% if results %}
+            <div class="suggest-results-grid">
+                {% for item in results %}
+                    <article class="suggest-meal-item">
+                        <div class="suggest-meal-top">
+                            <h4><a href="{% url 'meals:meal_detail' item.meal.id %}">{{ item.meal.name }}</a></h4>
+                            <span class="suggest-score">{{ item.coverage }}% збіг</span>
+                        </div>
+                        <p>Підійшло інгредієнтів: {{ item.matched_items }} / {{ item.total_items }}</p>
+                        <div class="suggest-meal-meta">
+                            <span>{{ item.calories }} ккал</span>
+                            <span>{{ item.protein }}г білка</span>
+                            <span>{{ item.carbs }}г вугл.</span>
+                            <span>{{ item.fats }}г жирів</span>
+                        </div>
+                        <div class="suggest-meal-need">
+                            {% if item.missing %}
+                                <small>Потрібно докупити:</small>
+                                {% for miss in item.missing|slice:":3" %}
+                                    <strong>+ {{ miss.name }} {{ miss.grams }}г</strong>
+                                {% endfor %}
+                            {% else %}
+                                <small>Усі інгредієнти вже є ✅</small>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% elif was_submitted %}
+            <div class="suggest-empty-note">Немає підходящих страв за обраними параметрами.</div>
+        {% else %}
+            <div class="suggest-empty-note">Оберіть продукти і натисніть "Показати рекомендації".</div>
+        {% endif %}
+    </section>
+</div>
+
+<script>
+    (function () {
+        const picker = document.getElementById('food-picker');
+        const suggestions = document.getElementById('food-suggestions');
+        const autocompleteWrap = document.getElementById('food-autocomplete');
+        const gramsInput = document.getElementById('food-grams');
+        const addBtn = document.getElementById('add-food-btn');
+        const list = document.getElementById('selected-products-list');
+        const hidden = document.getElementById('selected-products-hidden');
+        const minMatch = document.getElementById('min-match');
+        const minMatchValue = document.getElementById('min-match-value');
+        const form = document.getElementById('suggestions-form');
+        const clearTagsBtn = document.getElementById('clear-tags-btn');
+        const foodsData = [
+            {% for food in food_options %}
+                { id: {{ food.id }}, name: "{{ food.name|escapejs }}", type: "{{ food.type|default_if_none:''|escapejs }}" },
+            {% endfor %}
+        ];
+        let selectedFood = null;
+
+        function syncHidden(foodId, grams) {
+            let idInput = hidden.querySelector('input[data-food-id="' + foodId + '"][data-field="id"]');
+            let gramsHidden = hidden.querySelector('input[data-food-id="' + foodId + '"][data-field="grams"]');
+
+            if (!idInput) {
+                idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'food_id';
+                idInput.dataset.foodId = String(foodId);
+                idInput.dataset.field = 'id';
+                idInput.value = foodId;
+                hidden.appendChild(idInput);
+            }
+
+            if (!gramsHidden) {
+                gramsHidden = document.createElement('input');
+                gramsHidden.type = 'hidden';
+                gramsHidden.name = 'food_grams';
+                gramsHidden.dataset.foodId = String(foodId);
+                gramsHidden.dataset.field = 'grams';
+                hidden.appendChild(gramsHidden);
+            }
+
+            gramsHidden.value = String(grams);
+        }
+
+        function removeHidden(foodId) {
+            hidden.querySelectorAll('input[data-food-id="' + foodId + '"]').forEach(el => el.remove());
+        }
+
+        function updateEmptyState() {
+            const anyProduct = list.querySelector('.suggest-product-item');
+            const note = document.getElementById('empty-products-note');
+            if (note) {
+                note.style.display = anyProduct ? 'none' : 'block';
+            }
+        }
+
+        function rebuildHiddenFromRows() {
+            hidden.innerHTML = '';
+            list.querySelectorAll('.suggest-product-item').forEach(function (row) {
+                const foodId = row.dataset.foodId;
+                const gramsField = row.querySelector('.selected-food-grams');
+                const grams = parseFloat((gramsField.value || '0').replace(',', '.'));
+                if (!foodId || !(grams > 0)) return;
+
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'food_id';
+                idInput.value = foodId;
+                hidden.appendChild(idInput);
+
+                const gramsInputHidden = document.createElement('input');
+                gramsInputHidden.type = 'hidden';
+                gramsInputHidden.name = 'food_grams';
+                gramsInputHidden.value = String(grams);
+                hidden.appendChild(gramsInputHidden);
+            });
+        }
+
+        function renderSuggestions(items) {
+            suggestions.innerHTML = '';
+            if (!items.length) {
+                suggestions.classList.remove('open');
+                return;
+            }
+
+            items.slice(0, 8).forEach(function (item) {
+                const el = document.createElement('button');
+                el.type = 'button';
+                el.className = 'suggest-autocomplete-item';
+                el.innerHTML = '<strong>' + item.name + '</strong><span>' + (item.type || '') + '</span>';
+                el.addEventListener('click', function () {
+                    selectedFood = item;
+                    picker.value = item.name;
+                    suggestions.classList.remove('open');
+                    gramsInput.focus();
+                });
+                suggestions.appendChild(el);
+            });
+            suggestions.classList.add('open');
+        }
+
+        function tryResolveTypedFood() {
+            const typed = (picker.value || '').trim().toLowerCase();
+            if (!typed) return null;
+            return foodsData.find(f => f.name.toLowerCase() === typed) || null;
+        }
+
+        function attachRowEvents(row) {
+            const gramsField = row.querySelector('.selected-food-grams');
+            const removeBtn = row.querySelector('.suggest-remove-btn');
+            const foodId = row.dataset.foodId;
+
+            gramsField.addEventListener('input', function () {
+                const value = parseFloat(gramsField.value || '0');
+                if (value > 0) {
+                    syncHidden(foodId, value);
+                }
+            });
+
+            removeBtn.addEventListener('click', function () {
+                row.remove();
+                removeHidden(foodId);
+                updateEmptyState();
+            });
+        }
+
+        list.querySelectorAll('.suggest-product-item').forEach(attachRowEvents);
+        updateEmptyState();
+
+        picker.addEventListener('input', function () {
+            selectedFood = null;
+            const q = (picker.value || '').trim().toLowerCase();
+            if (!q) {
+                renderSuggestions([]);
+                return;
+            }
+            const filtered = foodsData.filter(function (item) {
+                return item.name.toLowerCase().includes(q);
+            });
+            renderSuggestions(filtered);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!autocompleteWrap.contains(e.target)) {
+                suggestions.classList.remove('open');
+            }
+        });
+
+        if (minMatch && minMatchValue) {
+            minMatch.addEventListener('input', function () {
+                minMatchValue.textContent = minMatch.value + '%';
+            });
+        }
+
+        if (clearTagsBtn) {
+            clearTagsBtn.addEventListener('click', function () {
+                form.querySelectorAll('input[name="tag"]').forEach(function (cb) {
+                    cb.checked = false;
+                });
+            });
+        }
+
+        addBtn.addEventListener('click', function () {
+            if (!selectedFood) {
+                selectedFood = tryResolveTypedFood();
+            }
+            const foodId = selectedFood ? String(selectedFood.id) : '';
+            const foodName = selectedFood ? selectedFood.name : '';
+            const foodType = selectedFood ? selectedFood.type : '';
+            const grams = parseFloat((gramsInput.value || '0').replace(',', '.'));
+
+            if (!foodId || grams <= 0) {
+                return;
+            }
+
+            const existing = list.querySelector('.suggest-product-item[data-food-id="' + foodId + '"]');
+            if (existing) {
+                const gramsField = existing.querySelector('.selected-food-grams');
+                const current = parseFloat(gramsField.value || '0');
+                gramsField.value = (current + grams).toFixed(1);
+                syncHidden(foodId, gramsField.value);
+            } else {
+                const row = document.createElement('div');
+                row.className = 'suggest-product-item';
+                row.dataset.foodId = foodId;
+                row.innerHTML = `
+                    <div class="suggest-product-main">
+                        <strong>${foodName}</strong>
+                        <span class="suggest-pill">${foodType || ''}</span>
+                    </div>
+                    <div class="suggest-product-controls">
+                        <label>грамів</label>
+                        <input type="number" class="selected-food-grams" value="${grams.toFixed(1)}" min="0.1" step="0.1">
+                        <button type="button" class="suggest-remove-btn">✕</button>
+                    </div>
+                `;
+                list.appendChild(row);
+                attachRowEvents(row);
+                syncHidden(foodId, grams.toFixed(1));
+            }
+
+            gramsInput.value = '';
+            picker.value = '';
+            selectedFood = null;
+            suggestions.classList.remove('open');
+            updateEmptyState();
+        });
+
+        form.addEventListener('submit', function () {
+            rebuildHiddenFromRows();
+        });
+    })();
+</script>
+{% endblock %}

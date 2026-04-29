@@ -1,68 +1,198 @@
 {% extends "main/layout.html" %}
+{% load static %}
 
 {% block title %}
     {{ meal.name }}
 {% endblock %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'meals/css/meal_detail.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="card meal-detailed-card" style="padding: 20px;">
-    <table style="width: 100%; ">
-    <tr>
-        <td>
-            <h2 class="meal-name"> {{ meal.name }} </h2>
-        </td>
-        <td style="text-align: right;">
-            <button class="btn btn-secondary rounded-pill px-3" onclick="window.history.back()">Go Back</button>
-        </td>
-    </tr>
-    </table>
-    <p class="meal-autor"> Author: {{ meal.author }}</p>
-    <p class="meal-grams"> {{ meal.grams }} grams </p>
-    <p class="list-group meal-recipe"> {{ meal.recipe }} </p> 
-    <p class="meal-link"> <a href="{{ meal.link }}">Recipe Link</a> </p> 
-    <p>Food Items:</p>
-    <div class="food-items">
-        {% comment %} <table style="border-collapse: collapse;border-radius: 15px; overflow: hidden; width: 100%;"> {% endcomment %}
-        <table class="table table-bordered">    
-            {% comment %} <tr style="width: 20%; background-color: #f2f2f2;"> {% endcomment %}
-            <tr>
-                <th > Name </th>
-                <th > Type </th>
-                <th > Grams </th>
-                <th > Calories </th>
-                <th > Protein </th>
-                <th > Carbs </th>
-                <th > Fats </th>
-            </tr>
-        {% for food in meal.mealproducts_set.all %}
-            {% include 'meals/foodItem.html' with food=food.food %}
-        {% endfor %}
-        </table>
-    </div>
-    <form method="post" action="{% url 'meal_detail' meal.id %}">
-    {% csrf_token %}
-        <div class="card", style="width: 25rem; margin-top: 20px;">
-            <div class="card-header">
-                <p class="card-title">Calculate:</p>
-                <table>
-                    <tr>
-                        <td><input type="number" name="grams" value="{{ grams }}" class="form-control"></td>
-
-                        <td><button class="btn btn-primary rounded-pill px-2" type="submit">Update Meal</button></td>
-                    </tr>
-                </table>
-
-                
-
-            </div>
-            <h4 style="margin-left: 10px;" class="card-title">Totals:</h4>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">Calories: {{ cpfc.calories }} kcal</li>
-                <li class="list-group-item">Protein: {{ cpfc.protein }} g</li>
-                <li class="list-group-item">Carbs: {{ cpfc.carbs }} g</li>
-                <li class="list-group-item">Fats: {{ cpfc.fats }} g</li>
-            </ul>
+<div class="meal-detail">
+    <div class="meal-detail-hero">
+        <div class="meal-detail-media">
+            {% if meal.image and meal.image.url %}
+                <img src="{{ meal.image.url }}" alt="{{ meal.name }}">
+            {% else %}
+                <div class="meal-detail-placeholder">
+                    <i class="fas fa-utensils"></i>
+                </div>
+            {% endif %}
         </div>
-    </form>
+        <div class="meal-detail-info">
+            <div class="meal-detail-header">
+                <h1>{{ meal.name }}
+                    {% if user.is_authenticated and is_favorite %}
+                        <span class="meal-add-to-favorites"><a href="{% url 'meals:toggle_favorite' meal.id %}"><i class="fa-solid fa-star"></i></a></span>
+                    {% else %}
+                        <span class="meal-add-to-favorites"><a href="{% url 'meals:toggle_favorite' meal.id %}"><i class="fa-regular fa-star"></i></a></span>
+                    {% endif %}
+                </h1>
+                <div class="meal-detail-header-actions">
+                    {% if user.is_authenticated and user.id == meal.author_id %}
+                    <form method="post" action="{% url 'meals:delete_meal' meal.id %}" onsubmit="return confirm('Видалити страву? Цю дію не можна скасувати.');">
+                        {% csrf_token %}
+                        <button class="meal-detail-danger" type="submit">Видалити страву</button>
+                    </form>
+                    {% endif %}
+                    <button class="meal-detail-back" type="button" onclick="window.history.back()">Назад</button>
+                </div>
+            </div>
+            <div class="meal-detail-meta">
+                <span><i class="fas fa-user"></i> Автор: {{ meal.author }}</span>
+                <span><i class="fas fa-weight"></i> {{ meal.grams }} г</span>
+                <span><i class="fas fa-star"></i> {{ meal.popularity }}</span>
+                {% if meal.link %}
+                    <a class="meal-detail-link" href="{{ meal.link }}" target="_blank" rel="noopener">Посилання на рецепт</a>
+                {% endif %}
+                
+            </div>
+            <div class="meal-detail-tags">
+                {% for tag in meal_tags %}
+                    <span class="meal-detail-tag">{{ tag.name }}</span>
+                {% empty %}
+                    <span class="meal-detail-tags-empty">Теги не додані</span>
+                {% endfor %}
+            </div>
+            {% if meal.recipe %}
+                <p class="meal-detail-recipe">{{ meal.recipe }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="meal-detail-grid">
+        <section class="meal-detail-card">
+            <h3>Продукти</h3>
+            {% if user.is_authenticated and user.id == meal.author_id %}
+                <p>
+                    <a href="{% url 'meals:add_food' %}?meal_id={{ meal.id }}" class="meal-detail-submit">Додати продукт</a>
+                </p>
+            {% endif %}
+            <div class="meal-detail-table-wrap">
+                <table class="meal-detail-table">
+                    <tr>
+                        <th>Назва</th>
+                        <th>Тип</th>
+                        <th>Грами</th>
+                        <th>Калорії</th>
+                        <th>Білки</th>
+                        <th>Вуглеводи</th>
+                        <th>Жири</th>
+                        {% if user.is_authenticated and user.id == meal.author_id %}
+                            <th>Дія</th>
+                        {% endif %}
+                    </tr>
+                {% for item in meal.mealproducts_set.all %}
+                    <tr>
+                        <td>{{ item.food.name }}</td>
+                        <td>{{ item.food.type }}</td>
+                        <td>{{ item.grams }} г</td>
+                        <td>{% widthratio item.food.calories item.food.grams item.grams %} ккал</td>
+                        <td>{% widthratio item.food.protein item.food.grams item.grams %} г</td>
+                        <td>{% widthratio item.food.carbs item.food.grams item.grams %} г</td>
+                        <td>{% widthratio item.food.fats item.food.grams item.grams %} г</td>
+                        {% if user.is_authenticated and user.id == meal.author_id %}
+                            <td>
+                                <form method="post" action="{% url 'meals:delete_meal_product' meal.id item.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'meals:meal_detail' meal.id %}">
+                                    <button type="submit" class="meal-detail-table-danger">Видалити</button>
+                                </form>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="{% if user.is_authenticated and user.id == meal.author_id %}8{% else %}7{% endif %}">Продукти ще не додані.</td>
+                    </tr>
+                {% endfor %}
+                </table>
+            </div>
+        </section>
+
+        <section class="meal-detail-card">
+            <h3>Розрахунок</h3>
+            <form method="post" action="{% url 'meals:meal_detail' meal.id %}" class="meal-detail-calc">
+                {% csrf_token %}
+                <div class="meal-detail-calc-row">
+                    <input type="number" name="grams" value="{{ grams }}" class="meal-detail-input">
+                    <button class="meal-detail-submit" type="submit">Оновити страву</button>
+                </div>
+            </form>
+            <div class="meal-detail-totals">
+                <div class="meal-detail-total">
+                    <span>Калорії</span>
+                    <strong>{{ cpfc.calories }} ккал</strong>
+                </div>
+                <div class="meal-detail-total">
+                    <span>Білки</span>
+                    <strong>{{ cpfc.protein }} г</strong>
+                </div>
+                <div class="meal-detail-total">
+                    <span>Вуглеводи</span>
+                    <strong>{{ cpfc.carbs }} г</strong>
+                </div>
+                <div class="meal-detail-total">
+                    <span>Жири</span>
+                    <strong>{{ cpfc.fats }} г</strong>
+                </div>
+            </div>
+        </section>
+
+        {% if user.is_authenticated and user.id == meal.author_id %}
+        <section class="meal-detail-card">
+            <h3>Редагування страви</h3>
+            <form method="post" enctype="multipart/form-data" class="meal-edit-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_meal">
+                <div class="meal-edit-group">
+                    <label for="edit_name">Назва</label>
+                    <input id="edit_name" type="text" name="name" value="{{ meal.name }}" class="meal-edit-input" required>
+                </div>
+                <div class="meal-edit-group">
+                    <label for="edit_grams">Грами</label>
+                    <input id="edit_grams" type="number" name="grams" value="{{ meal.grams }}" class="meal-edit-input" required>
+                </div>
+                <div class="meal-edit-group">
+                    <label for="edit_recipe">Рецепт</label>
+                    <textarea id="edit_recipe" name="recipe" class="meal-edit-input meal-edit-textarea">{{ meal.recipe }}</textarea>
+                </div>
+                <div class="meal-edit-group">
+                    <label for="edit_link">Посилання</label>
+                    <input id="edit_link" type="url" name="link" value="{{ meal.link }}" class="meal-edit-input">
+                </div>
+                <div class="meal-edit-group">
+                    <label for="edit_image">Нове фото</label>
+                    <input id="edit_image" type="file" name="image" class="meal-edit-input" accept="image/*">
+                </div>
+                <div class="meal-edit-group">
+                    <label>Теги</label>
+                    {% if grouped_tags_for_edit %}
+                        <div class="meal-edit-tag-groups">
+                            {% for group in grouped_tags_for_edit %}
+                                <div class="meal-edit-tag-group">
+                                    <p class="meal-edit-tag-group-title">{{ group.type }}</p>
+                                    <div class="meal-edit-tag-options">
+                                        {% for tag in group.tags %}
+                                            <label class="meal-edit-tag-option">
+                                                <input type="checkbox" name="tag" value="{{ tag.id }}" {% if tag.id in meal_tag_ids %}checked{% endif %}>
+                                                {{ tag.name }}
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="meal-detail-tags-empty">Теги відсутні.</p>
+                    {% endif %}
+                </div>
+                <button class="meal-detail-submit" type="submit">Зберегти зміни</button>
+            </form>
+        </section>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

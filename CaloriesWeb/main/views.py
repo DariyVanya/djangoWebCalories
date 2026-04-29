@@ -1,6 +1,7 @@
 from django.shortcuts import redirect, render
 from django.contrib.auth import authenticate, login, logout
 from .forms import LogInForm, SignUpForm
+from .models import UserDetails
 
 def index(request):
     print(request.user)
@@ -23,7 +24,7 @@ def logIn(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect('home')
+                return redirect('main:home')
             else:
                 form.add_error(None, 'Невірний логін або пароль')
     else:
@@ -35,15 +36,27 @@ def signUp(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+
+            UserDetails.objects.get_or_create(
+                user=user,
+                defaults={
+                    'age': 18,
+                    'height_cm': 170,
+                    'weight_kg': 70,
+                    'activity_level': 1,
+                }
+            )
 
             username = form.cleaned_data['username']
             password = form.cleaned_data['password1']
 
+            
+
             user = authenticate(request, username=username, password=password)
             login(request, user)
 
-            return redirect('home')
+            return redirect('user:edit_profile', user_id=user.id)
         else:
             print(form.errors)
     else:
@@ -55,4 +68,4 @@ def signUp(request):
 
 def logOut(request):
     logout(request)
-    return redirect('home')
+    return redirect('main:home')

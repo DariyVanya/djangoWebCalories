@@ -1,21 +1,57 @@
-
 {% if meal != '' %}
-<tr class="meal-item">
-    <td class="meal-name"> <a href="{% url 'meal_detail' meal.id %}">{{ meal.name }} </a> </td>
-    <td class="meal-grams"> {{ meal.grams }} grams </td>
-    {% comment %} <th class="meal-recipe-header"> Recipe </th> {% endcomment %}
-    {% comment %} <th class="meal-link-header"> Recipe Link </th> {% endcomment %}
-</tr>
+<div class="meal-card">
+    <div class="meal-image-container">
+        {% if meal.image and meal.image.url %}
+            <img src="{{ meal.image.url }}" alt="{{ meal.name }}">
+        {% else %}
+            <div class="meal-image-placeholder">
+                <i class="fas fa-utensils"></i>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="meal-content">
+        <h3 class="meal-name">
+            <a href="{% url 'meals:meal_detail' meal.id %}">{{ meal.name }}</a>
+        </h3>
+        
+        <p class="meal-description">
+            {% if meal.recipe %}
+                {{ meal.recipe|truncatewords:15 }}
+            {% else %}
+                Смачний рецепт для здорового харчування
+            {% endif %}
+        </p>
+        
+        <div class="meal-stats">
+            <div class="meal-stat">
+                <i class="fas fa-weight"></i>
+                {{ meal.grams }} г
+            </div>
+            <div class="meal-stat">
+                {% if user.is_authenticated %}
+                    {% if meal.id in favourite_meals %}
+                    <i class="fa-solid fa-star"></i>
+                    {{ meal.popularity }}
+                    {% else %}
+                    <i class="fa-regular fa-star"></i>
+                    {{ meal.popularity }}
+                    {% endif %}
+                {% else %}
+                    <i class="fa-regular fa-star"></i>
+                    {{ meal.popularity }}
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="meal-actions">
+            <a href="{% url 'meals:meal_detail' meal.id %}" class="meal-btn meal-btn-primary">
+                <i class="fas fa-eye"></i> Переглянути
+            </a>
+            <a href="{% url 'today:addMeal' %}?q={{ meal.name|urlencode }}" class="meal-btn meal-btn-secondary">
+                <i class="fas fa-plus"></i> Додати сьогодні
+            </a>
+        </div>
+    </div>
+</div>
 {% endif %}
-
-
-
-    {% comment %} <p class="meal-name"> {{ meal.name }} </p>
-    <p class="meal-grams"> {{ meal.grams }} grams </p> {% endcomment %}
-    {% comment %} <p class="meal-recipe"> {{ meal.recipe }} </p> {% endcomment %}
-    {% comment %} <p class="meal-link"> <a href="{{ meal.link }}">Recipe Link</a> </p> {% endcomment %}
-    {% comment %} <div class="meal-food-items">
-        {% for food in meal.mealproducts_set.all %}
-            {% include 'meals/foodItem.html' with food=food.food %}
-        {% endfor %}
-    </div> {% endcomment %}

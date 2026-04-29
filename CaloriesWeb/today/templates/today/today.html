@@ -1,33 +1,143 @@
 {% extends "main/layout.html" %}
+{% load static %}
 
 {% block title %}
-    Today
+    Сьогодні
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'today/css/today.css' %}?v=2">
 {% endblock %}
 
 {% block content %}
-    <h1>Today meals</h1>
-    <p>Here you can add food, eaten today</p>
-    {% if user.is_authenticated %}
-    <a href="{% url 'addMeal' %}">Add meal</a>
 
-    <ul>
-    {% for entry in entries %}
-        <p>
-            <a href="{% url 'meal_detail' entry.meal.id %}">{{ entry.meal.name }}</a> —
-            {{ entry.grams }} g
-        </p>
-        {% empty %}
-            <p>No meals today</p>
-    {% endfor %}
-    </ul>
-
-    <h3>Todays Calories</h3>
-    <p>{{ cpfc.calories }} kcal</p>
-    <p>Protein: {{ cpfc.protein }} g</p>
-    <p>Carbs: {{ cpfc.carbs }} g</p>
-    <p>Fats: {{ cpfc.fats }} g</p>
-    {% else %}
-        <p>Please <a href="{% url 'logIn' %}">log in</a> to track your meals.</p>
+    {% if streak_info %}
+        {% if streak_info.date_last_streak_entry == today_date %}
+        <div class="streak-banner streak-active">
+            <div class="streak-icon">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="streak-body">
+                <span class="streak-count">{{ streak_info.current_streak }}</span>
+                <span class="streak-label">денна серія активна</span>
+            </div>
+            <div class="streak-max">Макс: {{ streak_info.max_streak }} днів</div>
+        </div>
+        {% elif streak_info.date_last_streak_entry == yesterday_date %}
+        <div class="streak-banner streak-warn">
+            <div class="streak-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="streak-body">
+                <span class="streak-count">{{ streak_info.current_streak }}</span>
+                <span class="streak-label">днів — поновіть сьогодні!</span>
+            </div>
+            {% if calorie_plan == 'cut' %}
+                <div class="streak-max">Тримайте {{ cut_min_calories }}–{{ goal_calories }} ккал</div>
+            {% else %}
+                <div class="streak-max">Досягніть {{ goal_calories }} ккал</div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="streak-banner streak-reset">
+            <div class="streak-icon">
+                <i class="fas fa-icicles"></i>
+            </div>
+            <div class="streak-body">
+                <span class="streak-count">0</span>
+                <span class="streak-label">серія скинулась</span>
+            </div>
+            <div class="streak-max">Рекорд: {{ streak_info.max_streak }} днів</div>
+        </div>
+        {% endif %}
     {% endif %}
 
+    {% if user.is_authenticated and calorie_plan == 'cut' and is_over_goal %}
+        <div class="streak-banner streak-over">
+            <div class="streak-icon">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="streak-body">
+                <span class="streak-count">{{ cpfc.calories }}</span>
+                <span class="streak-label">ккал — ви перевищили ліміт для плану «Похудання»</span>
+            </div>
+            <div class="streak-max">Ліміт: {{ goal_calories }} ккал</div>
+        </div>
+    {% endif %}
+
+    <div class="today-hero">
+        <div class="today-hero-text">
+            <h1>Сьогоднішні страви</h1>
+            <p>Додавайте з'їдені страви та відстежуйте показники дня</p>
+        </div>
+        {% if user.is_authenticated %}
+            <a class="today-btn" href="{% url 'today:addMeal' %}">
+                <i class="fas fa-plus"></i> Додати страву або продукт
+            </a>
+        {% endif %}
+    </div>
+
+    {% if user.is_authenticated %}
+        <div class="today-grid">
+            <section class="today-card">
+                <h3>Список записів</h3>
+                <div class="today-list">
+                    {% for entry in entries %}
+                        <div class="today-list-item">
+                            <div class="today-list-name">
+                                {% if entry.meal_id %}
+                                    <a href="{% url 'meals:meal_detail' entry.meal.id %}">{{ entry.meal.name }}</a>
+                                {% else %}
+                                    <span>{{ entry.food.name }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="today-list-right">
+                                {% if entry.meal_id %}
+                                    <div class="today-list-type">Страва</div>
+                                {% else %}
+                                    <div class="today-list-type">Продукт</div>
+                                {% endif %}
+                                <div class="today-list-grams">{{ entry.grams }} г</div>
+                                <form method="post" action="{% url 'today:deleteTodayEntry' entry.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="today-delete" aria-label="Видалити">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="today-empty">Сьогодні немає записів</div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="today-card today-summary">
+                <h3>Калорії за сьогодні</h3>
+                <div class="today-kcal">
+                    <span class="today-kcal-value">{{ cpfc.calories }}</span>
+                    <span class="today-kcal-label">/ {{ goal_calories }} ккал</span>
+                </div>
+                <div class="today-macros">
+                    <div class="today-macro">
+                        <span>Білки</span>
+                        <strong>{{ cpfc.protein }} г</strong>
+                    </div>
+                    <div class="today-macro">
+                        <span>Вуглеводи</span>
+                        <strong>{{ cpfc.carbs }} г</strong>
+                    </div>
+                    <div class="today-macro">
+                        <span>Жири</span>
+                        <strong>{{ cpfc.fats }} г</strong>
+                    </div>
+                </div>
+            </section>
+        </div>
+    {% else %}
+        <div class="today-locked">
+            <i class="fas fa-lock"></i>
+            <p>Будь ласка, <a href="{% url 'main:logIn' %}">увійдіть</a>, щоб відстежувати страви.</p>
+        </div>
+    {% endif %}
 {% endblock %}

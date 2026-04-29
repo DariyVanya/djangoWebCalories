@@ -1,28 +1,81 @@
 {% extends "main/layout.html" %}
+{% load static %}
 
 {% block title %}
-    Add meal
+    Додати страву або продукт
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'today/css/today_add.css' %}">
 {% endblock %}
 
 {% block content %}
-    <form method="get">
-    <input type="text" name="q" value="{{ query }}" placeholder="Search meal">
-    <button type="submit">Search</button>
-</form>
+    <div class="today-add">
+        <div class="today-add-hero">
+            <div>
+                <h1>Додати страву або продукт</h1>
+                <p>Знайдіть страву або продукт і додайте порцію на сьогодні</p>
+            </div>
+            <form method="get" class="today-add-search">
+                <input type="text" name="q" value="{{ query }}" placeholder="Пошук страви або продукту">
+                <button type="submit">
+                    <i class="fas fa-search"></i> Пошук
+                </button>
+            </form>
+        </div>
 
-<hr>
+        <div class="today-add-results-wrapper">
+            <section>
+                <h3>Страви</h3>
+                <div class="today-add-results">
+                    {% for meal in meals %}
+                        <form method="post" class="today-add-card">
+                            {% csrf_token %}
+                            <div class="today-add-name">{{ meal.name }}</div>
+                            <div class="today-add-controls">
+                                <input type="number" name="grams" placeholder="грамів" required>
+                                <input type="hidden" name="entry_type" value="meal">
+                                <input type="hidden" name="meal_id" value="{{ meal.id }}">
+                                <button type="submit">
+                                    <i class="fas fa-plus"></i> Додати
+                                </button>
+                            </div>
+                        </form>
+                    {% empty %}
+                        {% if query %}
+                            <div class="today-add-empty">Страв не знайдено</div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
 
-{% for meal in meals %}
-    <form method="post">
-        {% csrf_token %}
-        <strong>{{ meal.name }}</strong>
-        <input type="number" name="grams" placeholder="grams" required>
-        <input type="hidden" name="meal_id" value="{{ meal.id }}">
-        <button type="submit">Add</button>
-    </form>
-{% empty %}
-    {% if query %}
-        <p>No meals found</p>
-    {% endif %}
-{% endfor %}
+            <section>
+                <h3>Продукти</h3>
+                <div class="today-add-results">
+                    {% for food in foods %}
+                        <form method="post" class="today-add-card">
+                            {% csrf_token %}
+                            <div class="today-add-name">{{ food.name }}</div>
+                            <div class="today-add-controls">
+                                <input type="number" name="grams" placeholder="грамів" required>
+                                <input type="hidden" name="entry_type" value="food">
+                                <input type="hidden" name="food_id" value="{{ food.id }}">
+                                <button type="submit">
+                                    <i class="fas fa-plus"></i> Додати
+                                </button>
+                            </div>
+                        </form>
+                    {% empty %}
+                        {% if query %}
+                            <div class="today-add-empty">Продуктів не знайдено</div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        {% if query and not meals and not foods %}
+            <div class="today-add-empty">Нічого не знайдено</div>
+        {% endif %}
+    </div>
 {% endblock %}

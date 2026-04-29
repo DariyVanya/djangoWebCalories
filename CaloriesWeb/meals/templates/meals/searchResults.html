@@ -1,22 +1,26 @@
 {% extends "main/layout.html" %}
+{% load static %}
 
 {% block title %}
-    Search Results
+    Результати пошуку
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'meals/css/meals.css' %}?v=1">
 {% endblock %}
 
 {% block content %}
-    <div class="search-results">
-        <h2>Search Results for "{{ query }}"</h2>
-        {% if meals %}
-            <ul>
-                {% for meal in meals %}
-                    <li>
-                        <a href="{% url 'meal_detail' meal.id %}">{{ meal.name }}</a> - {{ meal.grams }} grams
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No meals found matching your query.</p>
-        {% endif %}
+    <h1>Результати пошуку</h1>
+    <p>Запит: "{{ query }}"</p>
+
+    <div class="meals-list">
+        {% for meal in meals %}
+            {% include 'meals/mealItem.html' with meal=meal %}
+        {% empty %}
+            <div class="meals-empty">
+                <i class="fas fa-search"></i>
+                <p>Страв не знайдено за вашим запитом.</p>
+            </div>
+        {% endfor %}
     </div>
 {% endblock %}

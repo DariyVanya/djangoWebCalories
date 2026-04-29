@@ -1,0 +1,81 @@
+{% extends "main/layout.html" %}
+{% load static %}
+
+{% block title %}
+    Деталі користувача
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'user/css/user.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="user-profile-hero">
+        <div class="user-profile-hero-text">
+            <h1>Деталі користувача</h1>
+            <p>Переглядайте та оновлюйте інформацію про ваш обліковий запис</p>
+        </div>
+        {% if user.is_authenticated and user.id == details.user.id %}
+            <a class="user-profile-btn" href="{% url 'user:edit_profile' user_id %}">
+                <i class="fas fa-edit"></i> Редагувати профіль
+            </a>
+        {% endif %}
+    </div>
+
+    {% if user.is_authenticated %}
+        <div class="user-profile-grid">
+            <section class="user-profile-card">
+                <h3>Інформація про користувача</h3>
+                <div class="user-profile-list">
+                    <div class="user-profile-item">
+                        <strong>Ім'я:</strong> {{ details.user.first_name }}
+                    </div>
+                    <div class="user-profile-item">
+                        <strong>Прізвище:</strong> {{ details.user.last_name }}
+                    </div>
+                    <div class="user-profile-item">
+                        <strong>Email:</strong> {{ details.user.email }}
+                    </div>
+
+                    <div class="user-profile-item">
+                        <strong>Стать:</strong> {{ details.get_sex_display }}
+                    </div>
+
+                    <div class="user-profile-item">
+                        <strong>Зріст:</strong> {{ details.height_cm }} см
+                    </div>
+
+                    <div class="user-profile-item">
+                        <strong>Вага:</strong> {{ details.weight_kg }} кг
+                    </div>
+                    
+                    <div class="user-profile-item">
+                        <strong>Рівень активності:</strong> {{ details.get_activity_level_display }}
+                    </div>
+
+                    <div class="user-profile-item">
+                        <strong>Поточна серія:</strong> {{ details.current_streak }} днів
+                    </div>
+
+                    <div class="user-profile-item">
+                        <strong>Максимальна серія:</strong> {{ details.max_streak }} днів
+                    </div>
+
+                    <div class="user-profile-item">
+                        <strong>Цільові калорії:</strong> {{ details.goal_calories }} ккал
+                    </div>
+
+                    <div class="user-profile-item">
+                        <strong>План калорій:</strong> {{ details.get_calorie_plan_display }}
+                    </div>
+                </div>
+            </section>
+        </div>
+    {% else %}
+        <div class="today-locked">
+            <i class="fas fa-lock"></i>
+            <p>Будь ласка, <a href="{% url 'main:logIn' %}">увійдіть</a>, щоб переглянути деталі користувача.</p>
+        </div>
+    {% endif %}
+{% endblock %}
+                   
