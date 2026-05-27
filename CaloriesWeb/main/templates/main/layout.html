@@ -69,6 +69,27 @@
             <a href="{% url 'meals:suggestions' %}">
                 <li><i class="fa-solid fa-lightbulb"></i> Пропозиції</li>
             </a>
+            {% if user.is_authenticated and not is_admin and not is_manager %}
+                {% if manager_request_allowed %}
+                    <a href="{% url 'user:apply_manager' %}">
+                        <li><i class="fa-solid fa-user-gear"></i> Стати менеджером</li>
+                    </a>
+                {% else %}
+                    <a href="#" class="nav-link-locked" title="{{ manager_request_reason }}" onclick="return false;">
+                        <li><i class="fa-solid fa-user-gear"></i> Стати менеджером <i class="fa-solid fa-lock nav-lock"></i></li>
+                    </a>
+                {% endif %}
+            {% endif %}
+            {% if is_manager or is_admin %}
+                <a href="{% url 'meals:verification_list' %}">
+                    <li><i class="fa-solid fa-shield-check"></i> Верифікація страв</li>
+                </a>
+            {% endif %}
+            {% if is_admin %}
+                <a href="{% url 'user:manager_requests' %}">
+                    <li><i class="fa-solid fa-user-check"></i> Запити на менеджера</li>
+                </a>
+            {% endif %}
             <a href="{% url 'main:about' %}">
                 <li><i class="fa-solid fa-circle-info"></i> Про нас</li>
             </a>

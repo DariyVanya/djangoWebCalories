@@ -77,7 +77,11 @@
                 <a class="btn btn-primary meal-add-button">
                     <i class="fas fa-plus"></i> Додати страву
                 </a>
-                <p class="meal-actions-note">Щоб додати страву, досягніть серії 30</p>
+                {% if add_meal_reason %}
+                    <p class="meal-actions-note">{{ add_meal_reason }}</p>
+                {% else %}
+                    <p class="meal-actions-note">Щоб додати страву, досягніть серії 30</p>
+                {% endif %}
             {% endif %}
         </div>
 

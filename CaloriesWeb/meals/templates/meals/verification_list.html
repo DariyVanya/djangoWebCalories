@@ -1,0 +1,44 @@
+{% extends "main/layout.html" %}
+{% load static %}
+
+{% block title %}
+    Верифікація страв
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'meals/css/meal_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+    <h1>Страви на верифікації</h1>
+    <p>Перелік запитів, які очікують перевірки менеджером.</p>
+
+    <section class="meal-detail-card">
+        {% if pending_items %}
+            <div class="meal-detail-table-wrap">
+                <table class="meal-detail-table">
+                    <tr>
+                        <th>Страва</th>
+                        <th>Автор</th>
+                        <th>Тип</th>
+                        <th>Дата</th>
+                        <th>Дія</th>
+                    </tr>
+                    {% for item in pending_items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.author.username }}</td>
+                            <td>{% if item.original_meal %}Оновлення{% else %}Нова{% endif %}</td>
+                            <td>{{ item.created_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <a class="meal-detail-submit" href="{% url 'meals:verification_detail' item.id %}">Переглянути</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% else %}
+            <p>Немає запитів на перевірку.</p>
+        {% endif %}
+    </section>
+{% endblock %}

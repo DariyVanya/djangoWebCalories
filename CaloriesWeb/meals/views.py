@@ -1,13 +1,51 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Meal, MealProducts, Food, MealFavorites, Tag, MealTag
+from django.utils import timezone
+from .models import (
+    Meal,
+    MealProducts,
+    Food,
+    MealFavorites,
+    Tag,
+    MealTag,
+    MealVerification,
+    MealVerificationProduct,
+    MealVerificationTag,
+    MealComment,
+)
 import datetime
 from datetime import timedelta
 from collections import defaultdict
+
+
+def _get_user_details(user):
+    if not user.is_authenticated:
+        return None
+    return getattr(user, "details", None)
+
+
+def _is_admin(user):
+    details = _get_user_details(user)
+    return bool(details and details.role == "admin") or getattr(user, "is_superuser", False)
+
+
+def _is_manager(user):
+    details = _get_user_details(user)
+    return bool(details and details.role == "manager")
+
+
+def _can_manage_meals(user):
+    details = _get_user_details(user)
+    return bool(details and details.account_status == "active" and not details.is_banned)
+
+
+def _can_verify_meals(user):
+    return _can_manage_meals(user) and (_is_admin(user) or _is_manager(user))
 
 # Create your views here.
 def meals(request):
     meals = Meal.objects.all().order_by("name")
     can_create_meal = False
+    add_meal_reason = ""
     open_groups = [group_name for group_name in request.GET.getlist("open_group") if group_name]
     panel_open = request.GET.get("filter_open") == "1"
     favourites_only = request.GET.get("favourites") == "1"
@@ -45,10 +83,18 @@ def meals(request):
                 "has_selected": is_selected,
             })
 
+    user_details = None
     if request.user.is_authenticated:
         user_details = getattr(request.user, "details", None)
         if user_details:
-            can_create_meal = user_details.current_streak >= 30
+            if user_details.is_banned:
+                add_meal_reason = "Ваш акаунт заблоковано"
+            elif user_details.account_status != "active":
+                add_meal_reason = "Ваш акаунт неактивний"
+            elif user_details.current_streak >= 30:
+                can_create_meal = True
+            else:
+                add_meal_reason = "Щоб додати страву, досягніть серії 30"
     
     favourite_meals = set()
     if request.user.is_authenticated:
@@ -58,6 +104,7 @@ def meals(request):
     data = {
         "meals": meals,
         "can_create_meal": can_create_meal,
+        "add_meal_reason": add_meal_reason,
         "favourite_meals": favourite_meals,
         "grouped_tags": grouped_tags,
         "selected_tag_ids": selected_tag_ids,
@@ -72,6 +119,7 @@ def meals(request):
 
 def meal_detail(request, meal_id):
     meal = get_object_or_404(Meal, id=meal_id)
+    user_details = _get_user_details(request.user)
     all_tags = Tag.objects.order_by("type", "name")
     meal_tag_ids = set(MealTag.objects.filter(meal=meal).values_list("tag_id", flat=True))
     grouped_tags_for_edit = []
@@ -85,40 +133,71 @@ def meal_detail(request, meal_id):
                 "tags": [tag],
             })
 
-    if request.method == "POST" and request.POST.get("action") == "update_meal":
-        if request.user.is_authenticated and request.user == meal.author:
-            name = (request.POST.get("name") or "").strip()
-            grams = request.POST.get("grams")
-            recipe = (request.POST.get("recipe") or "").strip()
-            link = (request.POST.get("link") or "").strip()
-            image = request.FILES.get("image")
-            selected_tag_ids = []
-            for raw_id in request.POST.getlist("tag"):
-                if str(raw_id).isdigit():
-                    selected_tag_ids.append(int(raw_id))
-            selected_tag_ids = list(set(selected_tag_ids))
+    pending_verification = None
+    if request.user.is_authenticated and request.user == meal.author:
+        pending_verification = MealVerification.objects.filter(
+            original_meal=meal,
+            status__in=["draft", "pending"],
+        ).order_by("-created_at").first()
 
-            if name:
-                meal.name = name
-            if grams:
-                meal.grams = grams
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "update_meal":
+            if request.user.is_authenticated and request.user == meal.author:
+                if _can_manage_meals(request.user) and not pending_verification:
+                    name = (request.POST.get("name") or "").strip() or meal.name
+                    grams_raw = request.POST.get("grams")
+                    try:
+                        grams = int(grams_raw) if grams_raw is not None else meal.grams
+                    except (TypeError, ValueError):
+                        grams = meal.grams
+                    recipe = (request.POST.get("recipe") or "").strip()
+                    link = (request.POST.get("link") or "").strip()
+                    image = request.FILES.get("image")
+                    selected_tag_ids = []
+                    for raw_id in request.POST.getlist("tag"):
+                        if str(raw_id).isdigit():
+                            selected_tag_ids.append(int(raw_id))
+                    selected_tag_ids = list(set(selected_tag_ids))
 
-            meal.recipe = recipe or None
-            meal.link = link or None
+                    verification = MealVerification.objects.create(
+                        author=request.user,
+                        original_meal=meal,
+                        name=name,
+                        grams=grams,
+                        recipe=recipe or meal.recipe,
+                        link=link or meal.link,
+                        image=image if image else None,
+                        status="pending",
+                    )
 
-            if image:
-                meal.image = image
+                    if selected_tag_ids:
+                        selected_tags = Tag.objects.filter(id__in=selected_tag_ids)
+                    else:
+                        selected_tags = Tag.objects.filter(mealtag__meal=meal).distinct()
+                    MealVerificationTag.objects.bulk_create([
+                        MealVerificationTag(verification=verification, tag=tag)
+                        for tag in selected_tags
+                    ])
 
-            meal.save()
+                    MealVerificationProduct.objects.bulk_create([
+                        MealVerificationProduct(
+                            verification=verification,
+                            food=item.food,
+                            grams=item.grams,
+                        )
+                        for item in meal.mealproducts_set.all()
+                    ])
 
-            MealTag.objects.filter(meal=meal).delete()
-            selected_tags = Tag.objects.filter(id__in=selected_tag_ids)
-            MealTag.objects.bulk_create([
-                MealTag(meal=meal, tag=tag)
-                for tag in selected_tags
-            ])
+            return redirect("meals:meal_detail", meal_id=meal.id)
 
-        return redirect("meals:meal_detail", meal_id=meal.id)
+        if action == "add_comment":
+            if not request.user.is_authenticated:
+                return redirect("main:logIn")
+            text = (request.POST.get("comment") or "").strip()
+            if text:
+                MealComment.objects.create(meal=meal, user=request.user, text=text)
+            return redirect("meals:meal_detail", meal_id=meal.id)
 
     cpfc = {
         "calories": 0,
@@ -129,8 +208,11 @@ def meal_detail(request, meal_id):
     meal_products = MealProducts.objects.filter(meal_id=meal_id)
 
     grams = meal.grams
-    if request.method == "POST":
-        grams = int(request.POST.get("grams", meal.grams))
+    if request.method == "POST" and request.POST.get("action") == "recalc":
+        try:
+            grams = int(request.POST.get("grams", meal.grams))
+        except (TypeError, ValueError):
+            grams = meal.grams
 
 
     for mp in meal_products:
@@ -153,8 +235,11 @@ def meal_detail(request, meal_id):
         "meal_tags": Tag.objects.filter(mealtag__meal=meal).order_by("type", "name"),
         "grouped_tags_for_edit": grouped_tags_for_edit,
         "meal_tag_ids": meal_tag_ids,
+        "pending_verification": pending_verification,
+        "comments": MealComment.objects.filter(meal=meal).select_related("user").order_by("-created_at"),
+        "user_details": user_details,
     }
-
+    print(data)
     return render(request, "meals/mealItemDetailed.html", data)
 
 def search(request):
@@ -175,6 +260,8 @@ def add_meal(request):
     user_details = getattr(request.user, "details", None)
     if not user_details or user_details.current_streak < 30:
         return redirect("meals:meals")
+    if user_details.account_status != "active" or user_details.is_banned:
+        return redirect("meals:meals")
 
     all_tags = Tag.objects.order_by("type", "name")
     grouped_tags = []
@@ -191,7 +278,11 @@ def add_meal(request):
 
     if request.method == "POST":
         name = (request.POST.get("name") or "").strip()
-        grams = request.POST.get("grams")
+        grams_raw = request.POST.get("grams")
+        try:
+            grams = int(grams_raw) if grams_raw is not None else None
+        except (TypeError, ValueError):
+            grams = None
         recipe = (request.POST.get("recipe") or "").strip()
         link = (request.POST.get("link") or "").strip()
         image = request.FILES.get("image")
@@ -201,25 +292,23 @@ def add_meal(request):
         selected_tag_ids = list(set(selected_tag_ids))
 
         if name and grams:
-            meal = Meal(
+            verification = MealVerification.objects.create(
+                author=request.user,
                 name=name,
                 grams=grams,
                 recipe=recipe or None,
                 link=link or None,
-                author=request.user,
-                popularity=0,
+                image=image if image else None,
+                status="draft",
             )
-            if image:
-                meal.image = image
-            meal.save()
 
             selected_tags = Tag.objects.filter(id__in=selected_tag_ids)
-            MealTag.objects.bulk_create([
-                MealTag(meal=meal, tag=tag)
+            MealVerificationTag.objects.bulk_create([
+                MealVerificationTag(verification=verification, tag=tag)
                 for tag in selected_tags
             ])
 
-            return redirect(f"{request.path}addfood/?meal_id={meal.id}")
+            return redirect("meals:verification_edit", verification_id=verification.id)
 
     return render(request, "meals/addMeal.html", {
         "grouped_tags": grouped_tags,
@@ -232,44 +321,117 @@ def add_food_to_meal(request):
 
     meal_id = request.POST.get("meal_id") or request.GET.get("meal_id")
     if not meal_id:
-        return redirect("meals:add_meal")
+        return redirect("meals:meals")
+
+    return redirect("meals:request_meal_update", meal_id=meal_id)
+
+
+def request_meal_update(request, meal_id):
+    if not request.user.is_authenticated:
+        return redirect("main:logIn")
+
+    if not _can_manage_meals(request.user):
+        return redirect("meals:meal_detail", meal_id=meal_id)
 
     meal = get_object_or_404(Meal, id=meal_id, author=request.user)
+    existing = MealVerification.objects.filter(
+        original_meal=meal,
+        status__in=["draft", "pending"],
+    ).order_by("-created_at").first()
+    if existing:
+        return redirect("meals:verification_edit", verification_id=existing.id)
+
+    verification = MealVerification.objects.create(
+        author=request.user,
+        original_meal=meal,
+        name=meal.name,
+        grams=meal.grams,
+        recipe=meal.recipe,
+        link=meal.link,
+        status="draft",
+    )
+
+    MealVerificationTag.objects.bulk_create([
+        MealVerificationTag(verification=verification, tag=tag)
+        for tag in Tag.objects.filter(mealtag__meal=meal).distinct()
+    ])
+
+    MealVerificationProduct.objects.bulk_create([
+        MealVerificationProduct(
+            verification=verification,
+            food=item.food,
+            grams=item.grams,
+        )
+        for item in meal.mealproducts_set.all()
+    ])
+
+    return redirect("meals:verification_edit", verification_id=verification.id)
+
+
+def verification_edit(request, verification_id):
+    if not request.user.is_authenticated:
+        return redirect("main:logIn")
+
+    verification = get_object_or_404(MealVerification, id=verification_id, author=request.user)
+    if verification.status != "draft":
+        return redirect("user:user_detail", user_id=request.user.id)
+
+    if not _can_manage_meals(request.user):
+        return redirect("meals:meals")
 
     if request.method == "POST":
         if request.POST.get("finish") == "1":
-            return redirect("meals:meal_detail", meal_id=meal.id)
+            verification.status = "pending"
+            verification.save()
+            return redirect("user:user_detail", user_id=request.user.id)
 
         food_id = request.POST.get("food") or request.POST.get("food_id")
-        grams = request.POST.get("grams")
+        grams_raw = request.POST.get("grams")
 
-        if food_id and grams:
-            food = get_object_or_404(Food, id=food_id)
-            MealProducts.objects.create(meal=meal, food=food, grams=grams)
-
-            return redirect(f"{request.path}?meal_id={meal.id}")
+        if food_id and grams_raw:
+            try:
+                grams_value = float(str(grams_raw).replace(",", "."))
+            except (TypeError, ValueError):
+                grams_value = None
+            if grams_value and grams_value > 0:
+                food = get_object_or_404(Food, id=food_id)
+                MealVerificationProduct.objects.create(
+                    verification=verification,
+                    food=food,
+                    grams=grams_value,
+                )
+                return redirect("meals:verification_edit", verification_id=verification.id)
 
     foods = Food.objects.all().order_by("name")
-    meal_products = MealProducts.objects.filter(meal=meal).select_related("food")
+    meal_products = verification.products.select_related("food")
     return render(request, "meals/addFoodToMeal.html", {
-        "meal": meal,
+        "meal": verification,
+        "verification": verification,
         "foods": foods,
         "meal_products": meal_products,
+        "is_verification": True,
     })
+
+
+def delete_verification_product(request, verification_id, product_id):
+    if not request.user.is_authenticated:
+        return redirect("main:logIn")
+
+    verification = get_object_or_404(MealVerification, id=verification_id, author=request.user)
+    product = get_object_or_404(MealVerificationProduct, id=product_id, verification=verification)
+
+    if request.method == "POST":
+        product.delete()
+
+    return redirect("meals:verification_edit", verification_id=verification.id)
 
 def delete_meal_product(request, meal_id, meal_product_id):
     if not request.user.is_authenticated:
         return redirect("main:logIn")
 
     meal = get_object_or_404(Meal, id=meal_id, author=request.user)
-    meal_product = get_object_or_404(MealProducts, id=meal_product_id, meal=meal)
-
     if request.method == "POST":
-        meal_product.delete()
-
-    redirect_to = request.POST.get("next") or request.GET.get("next")
-    if redirect_to:
-        return redirect(redirect_to)
+        return redirect("meals:request_meal_update", meal_id=meal.id)
 
     return redirect("meals:meal_detail", meal_id=meal.id)
 
@@ -278,6 +440,9 @@ def delete_meal(request, meal_id):
         return redirect("main:logIn")
 
     meal = get_object_or_404(Meal, id=meal_id, author=request.user)
+
+    if not _can_manage_meals(request.user):
+        return redirect("meals:meal_detail", meal_id=meal.id)
 
     if request.method == "POST":
         meal.delete()
@@ -477,3 +642,91 @@ def suggestions(request):
     }
 
     return render(request, "meals/mealSuggestions.html", data)
+
+
+def verification_list(request):
+    if not _can_verify_meals(request.user):
+        return redirect("main:home")
+
+    pending_items = MealVerification.objects.filter(status="pending").select_related(
+        "author",
+        "original_meal",
+    ).order_by("created_at")
+
+    return render(request, "meals/verification_list.html", {
+        "pending_items": pending_items,
+    })
+
+
+def verification_detail(request, verification_id):
+    if not _can_verify_meals(request.user):
+        return redirect("main:home")
+
+    verification = get_object_or_404(MealVerification, id=verification_id)
+    products = verification.products.select_related("food")
+    tags = verification.tags.select_related("tag")
+    author_meals = Meal.objects.filter(author=verification.author).order_by("-id")
+
+    if request.method == "POST" and verification.status == "pending":
+        action = request.POST.get("action")
+        comment = (request.POST.get("comment") or "").strip()
+
+        if action == "approve":
+            if verification.original_meal:
+                meal = verification.original_meal
+                meal.name = verification.name
+                meal.grams = verification.grams
+                meal.recipe = verification.recipe
+                meal.link = verification.link
+                if verification.image:
+                    meal.image = verification.image
+                meal.save()
+            else:
+                meal = Meal.objects.create(
+                    name=verification.name,
+                    grams=verification.grams,
+                    recipe=verification.recipe,
+                    link=verification.link,
+                    author=verification.author,
+                    popularity=0,
+                )
+                if verification.image:
+                    meal.image = verification.image
+                    meal.save()
+
+            MealTag.objects.filter(meal=meal).delete()
+            MealTag.objects.bulk_create([
+                MealTag(meal=meal, tag=tag_obj.tag)
+                for tag_obj in tags
+            ])
+
+            MealProducts.objects.filter(meal=meal).delete()
+            MealProducts.objects.bulk_create([
+                MealProducts(meal=meal, food=item.food, grams=item.grams)
+                for item in products
+            ])
+
+            verification.status = "approved"
+
+        elif action == "reject":
+            verification.status = "rejected"
+
+        elif action == "ban":
+            verification.status = "banned"
+            author_details = getattr(verification.author, "details", None)
+            if author_details:
+                author_details.is_banned = True
+                author_details.save()
+
+        verification.review_comment = comment or None
+        verification.reviewed_by = request.user
+        verification.reviewed_at = timezone.now()
+        verification.save()
+        return redirect("meals:verification_detail", verification_id=verification.id)
+
+    return render(request, "meals/verification_detail.html", {
+        "verification": verification,
+        "products": products,
+        "tags": tags,
+        "author_meals": author_meals,
+    })

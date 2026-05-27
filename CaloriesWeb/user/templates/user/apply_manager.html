@@ -1,0 +1,56 @@
+{% extends "main/layout.html" %}
+{% load static %}
+
+{% block title %}
+    Стати менеджером
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'user/css/user.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="user-profile-hero">
+        <div class="user-profile-hero-text">
+            <h1>Стати менеджером</h1>
+            <p>Заповніть анкету для подачі заявки на роль менеджера.</p>
+        </div>
+    </div>
+
+    {% if not manager_request_allowed %}
+        <div class="today-locked">
+            <i class="fas fa-lock"></i>
+            <p>{{ reason }}</p>
+        </div>
+    {% endif %}
+
+    <section class="user-profile-card">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="user-profile-list">
+                <div class="user-profile-item">
+                    <strong>ПІБ</strong>
+                    <input type="text" name="full_name" class="form-control" placeholder="Введіть повне ім'я" required>
+                </div>
+                <div class="user-profile-item">
+                    <strong>Телефон</strong>
+                    <input type="text" name="phone" class="form-control" placeholder="+380..." required>
+                </div>
+                <div class="user-profile-item">
+                    <strong>Чому вас мають прийняти</strong>
+                    <textarea name="motivation" class="form-control" rows="4" placeholder="Опишіть мотивацію" required></textarea>
+                </div>
+                <div class="user-profile-item">
+                    <strong>Резюме (опціонально)</strong>
+                    <input type="file" name="resume" class="form-control">
+                </div>
+            </div>
+
+            <div style="margin-top: 16px;">
+                <button class="user-profile-btn" type="submit" {% if not manager_request_allowed %}disabled{% endif %}>
+                    Подати заявку
+                </button>
+            </div>
+        </form>
+    </section>
+{% endblock %}

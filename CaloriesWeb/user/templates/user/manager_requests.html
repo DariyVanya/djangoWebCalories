@@ -1,0 +1,63 @@
+{% extends "main/layout.html" %}
+{% load static %}
+
+{% block title %}
+    Запити на менеджера
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'user/css/user.css' %}">
+{% endblock %}
+
+{% block content %}
+    <h1>Запити на роль менеджера</h1>
+    <p>Переглядайте та опрацьовуйте заявки користувачів.</p>
+
+    <section class="user-profile-card">
+        {% if requests %}
+            <div class="meal-detail-table-wrap">
+                <table class="meal-detail-table">
+                    <tr>
+                        <th>Користувач</th>
+                        <th>Контакти</th>
+                        <th>Мотивація</th>
+                        <th>Статус</th>
+                        <th>Дія</th>
+                    </tr>
+                    {% for req in requests %}
+                        <tr>
+                            <td>{{ req.user.username }}<br>{{ req.full_name }}</td>
+                            <td>
+                                {{ req.phone }}<br>{{ req.user.email }}
+                                {% if req.resume %}
+                                    <div><a href="{{ req.resume.url }}" target="_blank" rel="noopener">Резюме</a></div>
+                                {% endif %}
+                            </td>
+                            <td>{{ req.motivation|truncatewords:20 }}</td>
+                            <td>{{ req.get_status_display }}</td>
+                            <td>
+                                {% if req.status == 'pending' %}
+                                    <form method="post" style="display: grid; gap: 6px;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="request_id" value="{{ req.id }}">
+                                        <textarea name="admin_comment" class="form-control" rows="2" placeholder="Коментар"></textarea>
+                                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                            <button class="btn btn-primary" type="submit" name="action" value="approve">Апрувнути</button>
+                                            <button class="btn btn-secondary" type="submit" name="action" value="reject">Відхилити</button>
+                                            <button class="btn btn-danger" type="submit" name="action" value="block">Заблокувати</button>
+                                        </div>
+                                    </form>
+                                {% else %}
+                                    <span>Розглянуто</span>
+                                    {% if req.admin_comment %}<div>{{ req.admin_comment }}</div>{% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% else %}
+            <p>Запитів поки немає.</p>
+        {% endif %}
+    </section>
+{% endblock %}

@@ -255,6 +255,20 @@ aside a {
     color: inherit;
 }
 
+aside a.nav-link-locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+aside a.nav-link-locked li {
+    cursor: not-allowed;
+}
+
+.nav-lock {
+    margin-left: 6px;
+    color: var(--danger);
+}
+
 /* ===== MAIN CONTENT ===== */
 .main-content {
     background-color: var(--white);

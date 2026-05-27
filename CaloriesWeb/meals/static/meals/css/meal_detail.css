@@ -259,6 +259,60 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
+.meal-detail-alert {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(var(--warning-light-rgb), 0.25);
+    border: 1px solid rgba(var(--warning-rgb), 0.5);
+    color: #7c2d12;
+    font-weight: 600;
+}
+
+.meal-detail-alert--danger {
+    background: var(--danger-soft);
+    border-color: var(--danger-border);
+    color: var(--danger-ink);
+}
+
+.meal-detail-note {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--surface-muted);
+    color: var(--text-gray);
+    font-size: 14px;
+}
+
+.meal-detail-comments {
+    margin-top: 24px;
+}
+
+.meal-comment-form {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.meal-comment-list {
+    display: grid;
+    gap: 12px;
+}
+
+.meal-comment {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+}
+
+.meal-comment-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-gray);
+    margin-bottom: 6px;
+}
+
 .meal-detail-submit:hover {
     transform: translateY(-2px);
     background: linear-gradient(135deg, var(--primary-dark) 0%, #37cb2a 100%);

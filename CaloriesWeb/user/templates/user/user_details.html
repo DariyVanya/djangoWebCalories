@@ -10,72 +10,118 @@
 {% endblock %}
 
 {% block content %}
-    <div class="user-profile-hero">
-        <div class="user-profile-hero-text">
-            <h1>Деталі користувача</h1>
-            <p>Переглядайте та оновлюйте інформацію про ваш обліковий запис</p>
-        </div>
-        {% if user.is_authenticated and user.id == details.user.id %}
-            <a class="user-profile-btn" href="{% url 'user:edit_profile' user_id %}">
-                <i class="fas fa-edit"></i> Редагувати профіль
-            </a>
-        {% endif %}
-    </div>
-
-    {% if user.is_authenticated %}
-        <div class="user-profile-grid">
-            <section class="user-profile-card">
-                <h3>Інформація про користувача</h3>
-                <div class="user-profile-list">
-                    <div class="user-profile-item">
-                        <strong>Ім'я:</strong> {{ details.user.first_name }}
-                    </div>
-                    <div class="user-profile-item">
-                        <strong>Прізвище:</strong> {{ details.user.last_name }}
-                    </div>
-                    <div class="user-profile-item">
-                        <strong>Email:</strong> {{ details.user.email }}
-                    </div>
-
-                    <div class="user-profile-item">
-                        <strong>Стать:</strong> {{ details.get_sex_display }}
-                    </div>
-
-                    <div class="user-profile-item">
-                        <strong>Зріст:</strong> {{ details.height_cm }} см
-                    </div>
-
-                    <div class="user-profile-item">
-                        <strong>Вага:</strong> {{ details.weight_kg }} кг
-                    </div>
-                    
-                    <div class="user-profile-item">
-                        <strong>Рівень активності:</strong> {{ details.get_activity_level_display }}
-                    </div>
-
-                    <div class="user-profile-item">
-                        <strong>Поточна серія:</strong> {{ details.current_streak }} днів
-                    </div>
-
-                    <div class="user-profile-item">
-                        <strong>Максимальна серія:</strong> {{ details.max_streak }} днів
-                    </div>
-
-                    <div class="user-profile-item">
-                        <strong>Цільові калорії:</strong> {{ details.goal_calories }} ккал
-                    </div>
-
-                    <div class="user-profile-item">
-                        <strong>План калорій:</strong> {{ details.get_calorie_plan_display }}
+    <div class="user-profile-page">
+        <div class="user-profile-hero">
+            <div class="user-hero-content">
+                <div class="user-hero-avatar">{{ details.user.username|slice:":1"|upper }}</div>
+                <div class="user-profile-hero-text">
+                    <h1>Профіль користувача</h1>
+                    <p>@{{ details.user.username }}</p>
+                    <div class="profile-badges">
+                        <span class="profile-badge profile-badge--role">{{ details.get_role_display }}</span>
+                        <span class="profile-badge profile-badge--status">{{ details.get_account_status_display }}</span>
+                        {% if details.is_banned %}
+                            <span class="profile-badge profile-badge--danger">Заблоковано</span>
+                        {% endif %}
                     </div>
                 </div>
-            </section>
+            </div>
+            {% if user.is_authenticated and user.id == details.user.id %}
+                <a class="user-profile-btn" href="{% url 'user:edit_profile' user_id %}">
+                    <i class="fas fa-edit"></i> Редагувати профіль
+                </a>
+            {% endif %}
         </div>
-    {% else %}
-        <div class="today-locked">
-            <i class="fas fa-lock"></i>
-            <p>Будь ласка, <a href="{% url 'main:logIn' %}">увійдіть</a>, щоб переглянути деталі користувача.</p>
-        </div>
-    {% endif %}
+
+        {% if user.is_authenticated %}
+            {% if details.is_banned %}
+                <div class="today-locked" style="margin-bottom: 16px;">
+                    <i class="fas fa-lock"></i>
+                    <p>Ваш акаунт заблоковано. Додавання та редагування страв недоступні.</p>
+                </div>
+            {% endif %}
+
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <span>Поточна серія</span>
+                    <strong>{{ details.current_streak }} днів</strong>
+                </div>
+                <div class="profile-stat">
+                    <span>Максимальна серія</span>
+                    <strong>{{ details.max_streak }} днів</strong>
+                </div>
+                <div class="profile-stat">
+                    <span>Цільові калорії</span>
+                    <strong>{{ details.goal_calories }} ккал</strong>
+                </div>
+            </div>
+
+            <div class="user-profile-grid">
+                <section class="user-profile-card">
+                    <h3>Основні дані</h3>
+                    <div class="profile-kv-grid">
+                        <div class="profile-kv"><span>Ім'я</span><strong>{{ details.user.first_name }}</strong></div>
+                        <div class="profile-kv"><span>Прізвище</span><strong>{{ details.user.last_name }}</strong></div>
+                        <div class="profile-kv"><span>Email</span><strong>{{ details.user.email }}</strong></div>
+                        <div class="profile-kv"><span>Стать</span><strong>{{ details.get_sex_display }}</strong></div>
+                        <div class="profile-kv"><span>Зріст</span><strong>{{ details.height_cm }} см</strong></div>
+                        <div class="profile-kv"><span>Вага</span><strong>{{ details.weight_kg }} кг</strong></div>
+                        <div class="profile-kv"><span>Активність</span><strong>{{ details.get_activity_level_display }}</strong></div>
+                        <div class="profile-kv"><span>План калорій</span><strong>{{ details.get_calorie_plan_display }}</strong></div>
+                    </div>
+                </section>
+
+                <section class="user-profile-card">
+                    <h3>Мої страви</h3>
+                    {% if user_meals %}
+                        <div class="profile-list">
+                            {% for meal in user_meals %}
+                                <a class="profile-list-item" href="{% url 'meals:meal_detail' meal.id %}">
+                                    <span>{{ meal.name }}</span>
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>Поки що немає доданих страв.</p>
+                    {% endif %}
+                </section>
+
+                <section class="user-profile-card">
+                    <h3>Страви на верифікації</h3>
+                    {% if verification_items %}
+                        <div class="profile-list">
+                            {% for item in verification_items %}
+                                <div class="profile-list-item profile-list-item--static">
+                                    <span>{{ item.name }}</span>
+                                    <span class="status-chip status-chip--{{ item.status }}">{{ item.get_status_display }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>Немає страв на перевірці.</p>
+                    {% endif %}
+                </section>
+
+                <section class="user-profile-card">
+                    <h3>Запит на роль менеджера</h3>
+                    {% if manager_request %}
+                        <div class="profile-kv"><span>Статус</span><strong>{{ manager_request.get_status_display }}</strong></div>
+                        <div class="profile-kv"><span>Дата подачі</span><strong>{{ manager_request.created_at|date:"d.m.Y" }}</strong></div>
+                        {% if manager_request.admin_comment %}
+                            <div class="profile-kv profile-kv--full"><span>Коментар</span><strong>{{ manager_request.admin_comment }}</strong></div>
+                        {% endif %}
+                    {% else %}
+                        <p>Запит ще не подано.</p>
+                    {% endif %}
+                </section>
+            </div>
+        {% else %}
+            <div class="today-locked">
+                <i class="fas fa-lock"></i>
+                <p>Будь ласка, <a href="{% url 'main:logIn' %}">увійдіть</a>, щоб переглянути деталі користувача.</p>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}
                    

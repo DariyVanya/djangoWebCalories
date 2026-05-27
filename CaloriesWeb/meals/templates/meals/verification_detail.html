@@ -1,0 +1,104 @@
+{% extends "main/layout.html" %}
+{% load static %}
+
+{% block title %}
+    Верифікація страви
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'meals/css/meal_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+    <h1>Перевірка страви</h1>
+    <p>Перегляньте інформацію та прийміть рішення.</p>
+
+    <section class="meal-detail-card">
+        <h3>Дані страви</h3>
+        <div class="meal-detail-meta">
+            <span><i class="fas fa-user"></i> Автор: {{ verification.author.username }}</span>
+            <span><i class="fas fa-weight"></i> {{ verification.grams }} г</span>
+            <span><i class="fas fa-flag"></i> {{ verification.get_status_display }}</span>
+        </div>
+        {% if verification.recipe %}
+            <p class="meal-detail-recipe">{{ verification.recipe }}</p>
+        {% endif %}
+        {% if verification.link %}
+            <a class="meal-detail-link" href="{{ verification.link }}" target="_blank" rel="noopener">Посилання на рецепт</a>
+        {% endif %}
+
+        <div class="meal-detail-tags" style="margin-top: 12px;">
+            {% for tag in tags %}
+                <span class="meal-detail-tag">{{ tag.tag.name }}</span>
+            {% empty %}
+                <span class="meal-detail-tags-empty">Теги не додані</span>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="meal-detail-card">
+        <h3>Склад страви</h3>
+        <div class="meal-detail-table-wrap">
+            <table class="meal-detail-table">
+                <tr>
+                    <th>Продукт</th>
+                    <th>Тип</th>
+                    <th>Грами</th>
+                </tr>
+                {% for item in products %}
+                    <tr>
+                        <td>{{ item.food.name }}</td>
+                        <td>{{ item.food.type }}</td>
+                        <td>{{ item.grams }} г</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3">Склад порожній.</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+
+    <section class="meal-detail-card">
+        <h3>Страви автора</h3>
+        {% if author_meals %}
+            <div class="meal-detail-table-wrap">
+                <table class="meal-detail-table">
+                    <tr>
+                        <th>Назва</th>
+                        <th>Калорійність</th>
+                    </tr>
+                    {% for meal in author_meals %}
+                        <tr>
+                            <td><a href="{% url 'meals:meal_detail' meal.id %}">{{ meal.name }}</a></td>
+                            <td>{{ meal.grams }} г</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% else %}
+            <p>У користувача ще немає страв.</p>
+        {% endif %}
+    </section>
+
+    <section class="meal-detail-card">
+        <h3>Рішення</h3>
+        {% if verification.status == 'pending' %}
+            <form method="post" style="display: grid; gap: 12px;">
+                {% csrf_token %}
+                <textarea name="comment" class="meal-edit-input meal-edit-textarea" placeholder="Коментар"></textarea>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="meal-detail-submit" type="submit" name="action" value="approve">Одобрити</button>
+                    <button class="meal-detail-submit" type="submit" name="action" value="reject">Відхилити</button>
+                    <button class="meal-detail-danger" type="submit" name="action" value="ban">Забанити</button>
+                </div>
+            </form>
+        {% else %}
+            <p>Рішення вже прийнято: {{ verification.get_status_display }}.</p>
+            {% if verification.review_comment %}
+                <p><strong>Коментар:</strong> {{ verification.review_comment }}</p>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endblock %}

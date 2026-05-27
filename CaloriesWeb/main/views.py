@@ -23,8 +23,12 @@ def logIn(request):
 
             user = authenticate(request, username=username, password=password)
             if user is not None:
-                login(request, user)
-                return redirect('main:home')
+                user_details = getattr(user, "details", None)
+                if user_details and user_details.account_status != "active":
+                    form.add_error(None, 'Ваш акаунт неактивний')
+                else:
+                    login(request, user)
+                    return redirect('main:home')
             else:
                 form.add_error(None, 'Невірний логін або пароль')
     else:
@@ -45,6 +49,9 @@ def signUp(request):
                     'height_cm': 170,
                     'weight_kg': 70,
                     'activity_level': 1,
+                    'role': 'user',
+                    'account_status': 'active',
+                    'is_banned': False,
                 }
             )
 

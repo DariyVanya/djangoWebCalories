@@ -14,10 +14,17 @@
         <h1 class="meal-form-heading">Додайте продукти до страви</h1>
         <h3 class="meal-form-subheading">{{ meal.name }}</h3>
         <p class="meal-form-subheading">Виберіть продукти і вкажіть вагу у грамах.</p>
+        {% if is_verification %}
+            <p class="meal-form-subheading">Після завершення запит буде відправлено на верифікацію.</p>
+        {% endif %}
 
         <form method="post" class="meal-form-card">
             {% csrf_token %}
-            <input type="hidden" name="meal_id" value="{{ meal.id }}">
+            {% if is_verification %}
+                <input type="hidden" name="verification_id" value="{{ verification.id }}">
+            {% else %}
+                <input type="hidden" name="meal_id" value="{{ meal.id }}">
+            {% endif %}
             <div class="meal-form-grid">
                 <div class="meal-form-group">
                     <label for="food">Продукт</label>
@@ -40,9 +47,19 @@
 
         <form method="post" class="meal-form-actions">
             {% csrf_token %}
-            <input type="hidden" name="meal_id" value="{{ meal.id }}">
-            <button type="submit" name="finish" value="1" class="meal-form-btn">Завершити створення</button>
-            <a href="{% url 'meals:meal_detail' meal.id %}" class="meal-form-btn meal-form-btn-secondary">Скасувати</a>
+            {% if is_verification %}
+                <input type="hidden" name="verification_id" value="{{ verification.id }}">
+                <button type="submit" name="finish" value="1" class="meal-form-btn">Надіслати на перевірку</button>
+                {% if verification.original_meal %}
+                    <a href="{% url 'meals:meal_detail' verification.original_meal.id %}" class="meal-form-btn meal-form-btn-secondary">Скасувати</a>
+                {% else %}
+                    <a href="{% url 'user:user_detail' request.user.id %}" class="meal-form-btn meal-form-btn-secondary">Скасувати</a>
+                {% endif %}
+            {% else %}
+                <input type="hidden" name="meal_id" value="{{ meal.id }}">
+                <button type="submit" name="finish" value="1" class="meal-form-btn">Завершити створення</button>
+                <a href="{% url 'meals:meal_detail' meal.id %}" class="meal-form-btn meal-form-btn-secondary">Скасувати</a>
+            {% endif %}
         </form>
 
         <section class="meal-form-card">
@@ -61,11 +78,18 @@
                         <td>{{ item.food.type }}</td>
                         <td>{{ item.grams }} г</td>
                         <td class="action-cell">
-                            <form method="post" action="{% url 'meals:delete_meal_product' meal.id item.id %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                <button type="submit" class="meal-form-delete-btn">Видалити</button>
-                            </form>
+                            {% if is_verification %}
+                                <form method="post" action="{% url 'meals:verification_product_delete' verification.id item.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="meal-form-delete-btn">Видалити</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'meals:delete_meal_product' meal.id item.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit" class="meal-form-delete-btn">Видалити</button>
+                                </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
