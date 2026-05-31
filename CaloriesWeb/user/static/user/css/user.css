@@ -227,6 +227,20 @@
     box-shadow: none;
 }
 
+.profile-list-item.is-hidden {
+    display: none;
+}
+
+.profile-show-more {
+    width: 100%;
+    margin-top: 12px;
+}
+
+.profile-show-less {
+    width: 100%;
+    margin-top: 8px;
+}
+
 .status-chip {
     padding: 4px 10px;
     border-radius: 999px;
@@ -263,6 +277,51 @@
     background: var(--danger-bg);
     border: 1px solid var(--danger-border);
     color: var(--danger-ink);
+}
+
+.goal-warning-backdrop {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1000;
+}
+
+.goal-warning-backdrop.is-visible {
+    display: flex;
+}
+
+.goal-warning-card {
+    width: min(460px, 100%);
+    background: var(--white);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+    display: grid;
+    gap: 12px;
+}
+
+.goal-warning-card h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-dark);
+}
+
+.goal-warning-card p {
+    margin: 0;
+    color: var(--text-gray);
+    font-weight: 600;
+}
+
+.goal-warning-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 @media (max-width: 900px) {

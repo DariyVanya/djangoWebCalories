@@ -74,7 +74,7 @@
                 <section class="user-profile-card">
                     <h3>Мої страви</h3>
                     {% if user_meals %}
-                        <div class="profile-list">
+                        <div class="profile-list" id="user-meals-list" data-max-items="8">
                             {% for meal in user_meals %}
                                 <a class="profile-list-item" href="{% url 'meals:meal_detail' meal.id %}">
                                     <span>{{ meal.name }}</span>
@@ -82,6 +82,14 @@
                                 </a>
                             {% endfor %}
                         </div>
+                        {% if user_meals|length > 8 %}
+                            <button type="button" class="btn btn-outline-secondary profile-show-more" data-target="user-meals-list">
+                                Показати більше
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary profile-show-less" data-target="user-meals-list" style="display: none;">
+                                Приховати
+                            </button>
+                        {% endif %}
                     {% else %}
                         <p>Поки що немає доданих страв.</p>
                     {% endif %}
@@ -90,7 +98,7 @@
                 <section class="user-profile-card">
                     <h3>Страви на верифікації</h3>
                     {% if verification_items %}
-                        <div class="profile-list">
+                        <div class="profile-list" id="verification-list" data-max-items="8">
                             {% for item in verification_items %}
                                 <div class="profile-list-item profile-list-item--static">
                                     <span>{{ item.name }}</span>
@@ -98,6 +106,14 @@
                                 </div>
                             {% endfor %}
                         </div>
+                        {% if verification_items|length > 8 %}
+                            <button type="button" class="btn btn-outline-secondary profile-show-more" data-target="verification-list">
+                                Показати більше
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary profile-show-less" data-target="verification-list" style="display: none;">
+                                Приховати
+                            </button>
+                        {% endif %}
                     {% else %}
                         <p>Немає страв на перевірці.</p>
                     {% endif %}
@@ -123,5 +139,58 @@
             </div>
         {% endif %}
     </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const lists = document.querySelectorAll(".profile-list[data-max-items]");
+
+        lists.forEach((list) => {
+            const maxItems = parseInt(list.dataset.maxItems, 10);
+            const items = Array.from(list.querySelectorAll(".profile-list-item"));
+            const showButton = document.querySelector(`.profile-show-more[data-target="${list.id}"]`);
+            const hideButton = document.querySelector(`.profile-show-less[data-target="${list.id}"]`);
+
+            if (!Number.isFinite(maxItems) || items.length <= maxItems) {
+                if (showButton) {
+                    showButton.style.display = "none";
+                }
+                if (hideButton) {
+                    hideButton.style.display = "none";
+                }
+                return;
+            }
+
+            const setCollapsed = (collapsed) => {
+                if (collapsed) {
+                    items.slice(maxItems).forEach((item) => item.classList.add("is-hidden"));
+                    if (showButton) {
+                        showButton.style.display = "block";
+                    }
+                    if (hideButton) {
+                        hideButton.style.display = "none";
+                    }
+                } else {
+                    items.forEach((item) => item.classList.remove("is-hidden"));
+                    if (showButton) {
+                        showButton.style.display = "none";
+                    }
+                    if (hideButton) {
+                        hideButton.style.display = "block";
+                    }
+                }
+            };
+
+            setCollapsed(true);
+
+            if (showButton) {
+                showButton.addEventListener("click", () => setCollapsed(false));
+            }
+
+            if (hideButton) {
+                hideButton.addEventListener("click", () => setCollapsed(true));
+            }
+        });
+    });
+    </script>
 {% endblock %}
                    

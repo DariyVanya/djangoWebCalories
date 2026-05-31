@@ -18,7 +18,7 @@
         </div>
     </div>
 
-	<form method="post" action="{% url 'user:edit_profile' user_id %}">
+    <form method="post" action="{% url 'user:edit_profile' user_id %}" id="profile-form">
 		{% csrf_token %}
 
 		<div class="mb-3">
@@ -83,6 +83,7 @@
         </div>
 
         <script>
+        document.addEventListener("DOMContentLoaded", () => {
         function calcGoalCalories(sex, age, heightCm, weightKg, activityLevel, caloriePlan) {
             let bmr;
             if (sex === "male") {
@@ -114,6 +115,75 @@
 
             document.getElementById("goal_calories").value = calcGoalCalories(sex, age, height, weight, activity, caloriePlan);
         });
+
+        function calcMaintenanceCalories(sex, age, heightCm, weightKg, activityLevel) {
+            let bmr;
+            if (sex === "male") {
+                bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+            } else {
+                bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+            }
+            const factors = { 1: 1.2, 2: 1.375, 3: 1.55, 4: 1.725, 5: 1.9 };
+            return bmr * (factors[activityLevel] ?? 1.2);
+        }
+
+        const warningBackdrop = document.getElementById("goal-warning");
+        const warningContinue = document.getElementById("goal-warning-continue");
+        const warningCancel = document.getElementById("goal-warning-cancel");
+        const profileForm = document.getElementById("profile-form");
+        const goalInputField = document.getElementById("goal_calories");
+        let allowLargeDeviation = false;
+
+        function showGoalWarning() {
+            warningBackdrop.classList.add("is-visible");
+            warningBackdrop.setAttribute("aria-hidden", "false");
+        }
+
+        function hideGoalWarning() {
+            warningBackdrop.classList.remove("is-visible");
+            warningBackdrop.setAttribute("aria-hidden", "true");
+        }
+
+        warningContinue.addEventListener("click", () => {
+            allowLargeDeviation = true;
+            hideGoalWarning();
+            profileForm.submit();
+        });
+
+        warningCancel.addEventListener("click", () => {
+            hideGoalWarning();
+            goalInputField.focus();
+        });
+
+        warningBackdrop.addEventListener("click", (event) => {
+            if (event.target === warningBackdrop) {
+                hideGoalWarning();
+            }
+        });
+
+        profileForm.addEventListener("submit", (event) => {
+            if (allowLargeDeviation) {
+                return;
+            }
+            const sex      = document.getElementById("sex").value;
+            const age      = parseInt(document.getElementById("age").value);
+            const height   = parseInt(document.getElementById("height_cm").value);
+            const weight   = parseFloat(document.getElementById("weight_kg").value);
+            const activity = parseInt(document.getElementById("activity_level").value);
+            const goalInput = parseInt(document.getElementById("goal_calories").value);
+
+            if (!sex || isNaN(age) || isNaN(height) || isNaN(weight) || isNaN(activity) || isNaN(goalInput)) {
+                return;
+            }
+
+            const maintenance = calcMaintenanceCalories(sex, age, height, weight, activity);
+            const diff = Math.abs(goalInput - maintenance);
+            if (diff > 600) {
+                event.preventDefault();
+                showGoalWarning();
+            }
+        });
+        });
         </script>
 
 
@@ -122,4 +192,15 @@
 			<a href="{% url 'user:user_detail' user_id %}" class="btn btn-outline-secondary">Скасувати</a>
 		</div>
 	</form>
+
+    <div class="goal-warning-backdrop" id="goal-warning" aria-hidden="true">
+        <div class="goal-warning-card" role="dialog" aria-modal="true" aria-labelledby="goal-warning-title">
+            <h2 id="goal-warning-title">Увага</h2>
+            <p>Ваша ціль відрізняється від підтримуючої більш ніж на 600 ккал. Це може негативно вплинути на стан здоров'я.</p>
+            <div class="goal-warning-actions">
+                <button type="button" class="btn btn-outline-secondary" id="goal-warning-cancel">Повернутись</button>
+                <button type="button" class="btn btn-primary" id="goal-warning-continue">Продовжити</button>
+            </div>
+        </div>
+    </div>
 {% endblock %}

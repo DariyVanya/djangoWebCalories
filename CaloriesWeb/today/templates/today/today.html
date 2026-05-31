@@ -78,62 +78,177 @@
     </div>
 
     {% if user.is_authenticated %}
-        <div class="today-grid">
-            <section class="today-card">
-                <h3>Список записів</h3>
-                <div class="today-list">
-                    {% for entry in entries %}
-                        <div class="today-list-item">
-                            <div class="today-list-name">
-                                {% if entry.meal_id %}
-                                    <a href="{% url 'meals:meal_detail' entry.meal.id %}">{{ entry.meal.name }}</a>
-                                {% else %}
-                                    <span>{{ entry.food.name }}</span>
-                                {% endif %}
+        <div class="today-tabs">
+            <a class="today-tab {% if tab == 'today' %}is-active{% endif %}" href="{% url 'today:today' %}?tab=today">Сьогодні</a>
+            <a class="today-tab {% if tab == 'history' %}is-active{% endif %}" href="{% url 'today:today' %}?tab=history&period={{ history_period }}">Історія</a>
+        </div>
+
+        {% if tab == 'history' %}
+            <section class="today-card today-history">
+                <div class="today-history-header">
+                    <div>
+                        <h3>Історія калорій</h3>
+                        <p class="today-history-label">{{ history_label }}</p>
+                    </div>
+                    <div class="today-history-filters">
+                        <a class="today-filter {% if history_period == 'week' %}is-active{% endif %}" href="{% url 'today:today' %}?tab=history&period=week">Тиждень</a>
+                        <a class="today-filter {% if history_period == 'month' %}is-active{% endif %}" href="{% url 'today:today' %}?tab=history&period=month">Місяць</a>
+                        <a class="today-filter {% if history_period == 'year' %}is-active{% endif %}" href="{% url 'today:today' %}?tab=history&period=year">Рік</a>
+                    </div>
+                </div>
+
+                <div class="today-history-stats">
+                    <div class="today-history-stat">
+                        <span>Середнє за період</span>
+                        <strong>{{ history_stats.average }} ккал</strong>
+                    </div>
+                    <div class="today-history-stat">
+                        <span>Всього за період</span>
+                        <strong>{{ history_stats.total }} ккал</strong>
+                    </div>
+                    <div class="today-history-stat">
+                        <span>Максимум</span>
+                        <strong>{{ history_stats.max }} ккал</strong>
+                    </div>
+                    <div class="today-history-stat">
+                        <span>Мінімум</span>
+                        <strong>{{ history_stats.min }} ккал</strong>
+                    </div>
+                </div>
+
+                <div class="today-history-chart">
+                    {% for item in chart_items %}
+                        <div class="today-history-bar">
+                            <div class="today-history-bar-track">
+                                <div class="today-history-bar-fill" style="height: {{ item.pct }}%;"></div>
                             </div>
-                            <div class="today-list-right">
-                                {% if entry.meal_id %}
-                                    <div class="today-list-type">Страва</div>
-                                {% else %}
-                                    <div class="today-list-type">Продукт</div>
-                                {% endif %}
-                                <div class="today-list-grams">{{ entry.grams }} г</div>
-                                <form method="post" action="{% url 'today:deleteTodayEntry' entry.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="today-delete" aria-label="Видалити">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
+                            <span class="today-history-bar-label">{{ item.label }}</span>
+                            <span class="today-history-bar-value">{{ item.calories }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="today-history-list">
+                    {% for item in history_items %}
+                        <div class="today-history-item">
+                            <span>{{ item.label }}</span>
+                            <strong>{{ item.calories }} ккал</strong>
                         </div>
                     {% empty %}
-                        <div class="today-empty">Сьогодні немає записів</div>
+                        <div class="today-empty">Історія ще порожня.</div>
                     {% endfor %}
                 </div>
             </section>
+        {% else %}
+            <div class="today-grid">
+                <section class="today-card">
+                    <h3>Список записів</h3>
+                    <div class="today-list">
+                        {% for entry in entries %}
+                            <div class="today-list-item">
+                                <div class="today-list-name">
+                                    {% if entry.meal_id %}
+                                        <a href="{% url 'meals:meal_detail' entry.meal.id %}">{{ entry.meal.name }}</a>
+                                    {% else %}
+                                        <span>{{ entry.food.name }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="today-list-right">
+                                    {% if entry.meal_id %}
+                                        <div class="today-list-type">Страва</div>
+                                    {% else %}
+                                        <div class="today-list-type">Продукт</div>
+                                    {% endif %}
+                                    <div class="today-list-grams">{{ entry.grams }} г</div>
+                                    <form method="post" action="{% url 'today:deleteTodayEntry' entry.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="today-delete" aria-label="Видалити">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="today-empty">Сьогодні немає записів</div>
+                        {% endfor %}
+                    </div>
+                </section>
 
-            <section class="today-card today-summary">
-                <h3>Калорії за сьогодні</h3>
-                <div class="today-kcal">
-                    <span class="today-kcal-value">{{ cpfc.calories }}</span>
-                    <span class="today-kcal-label">/ {{ goal_calories }} ккал</span>
-                </div>
-                <div class="today-macros">
-                    <div class="today-macro">
-                        <span>Білки</span>
-                        <strong>{{ cpfc.protein }} г</strong>
+                <section class="today-card today-summary">
+                    <h3>Калорії за сьогодні</h3>
+                    <div class="today-kcal">
+                        <span class="today-kcal-value">{{ cpfc.calories }}</span>
+                        <span class="today-kcal-label">/ {{ goal_calories }} ккал</span>
                     </div>
-                    <div class="today-macro">
-                        <span>Вуглеводи</span>
-                        <strong>{{ cpfc.carbs }} г</strong>
-                    </div>
-                    <div class="today-macro">
-                        <span>Жири</span>
-                        <strong>{{ cpfc.fats }} г</strong>
-                    </div>
-                </div>
-            </section>
-        </div>
+                    {% if macro_recommendations %}
+                        <div class="today-progress">
+                            <div class="today-reco-header">
+                                <span>БЖВ: спожито / рекомендовано</span>
+                                <span class="today-reco-plan">{{ calorie_plan_display }}</span>
+                            </div>
+                            {% if macro_warning_items %}
+                                <div class="today-warning">
+                                    <div class="today-warning-icon">
+                                        <i class="fas fa-triangle-exclamation"></i>
+                                    </div>
+                                    <div class="today-warning-body">
+                                        <strong>Перевищення рекомендованих БЖВ</strong>
+                                        <div class="today-warning-list">
+                                            {% for item in macro_warning_items %}
+                                                <span>{{ item.label }}: {{ item.value }} / {{ item.target }} г ({{ item.pct }}%)</span>
+                                            {% endfor %}
+                                        </div>
+                                        <span class="today-warning-note">Поріг: {{ macro_warning_threshold }}% і більше</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="today-progress-row">
+                                <div class="today-progress-head">
+                                    <span>Білки</span>
+                                    <strong>{{ cpfc.protein }} / {{ macro_recommendations.protein }} г</strong>
+                                </div>
+                                <div class="today-progress-bar">
+                                    <div class="today-progress-fill" style="width: {{ macro_progress.protein }}%;"></div>
+                                </div>
+                            </div>
+                            <div class="today-progress-row">
+                                <div class="today-progress-head">
+                                    <span>Вуглеводи</span>
+                                    <strong>{{ cpfc.carbs }} / {{ macro_recommendations.carbs }} г</strong>
+                                </div>
+                                <div class="today-progress-bar">
+                                    <div class="today-progress-fill" style="width: {{ macro_progress.carbs }}%;"></div>
+                                </div>
+                            </div>
+                            <div class="today-progress-row">
+                                <div class="today-progress-head">
+                                    <span>Жири</span>
+                                    <strong>{{ cpfc.fats }} / {{ macro_recommendations.fats }} г</strong>
+                                </div>
+                                <div class="today-progress-bar">
+                                    <div class="today-progress-fill" style="width: {{ macro_progress.fats }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="today-macros">
+                            <div class="today-macro">
+                                <span>Білки</span>
+                                <strong>{{ cpfc.protein }} г</strong>
+                            </div>
+                            <div class="today-macro">
+                                <span>Вуглеводи</span>
+                                <strong>{{ cpfc.carbs }} г</strong>
+                            </div>
+                            <div class="today-macro">
+                                <span>Жири</span>
+                                <strong>{{ cpfc.fats }} г</strong>
+                            </div>
+                        </div>
+                    {% endif %}
+                </section>
+            </div>
+        {% endif %}
     {% else %}
         <div class="today-locked">
             <i class="fas fa-lock"></i>

@@ -85,14 +85,18 @@ def edit_profile(request, user_id):
             details.activity_level = _to_int(request.POST.get('activity_level'), details.activity_level)
             details.calorie_plan = request.POST.get('calorie_plan', details.calorie_plan)
 
-            details.goal_calories = _calculate_goal_calories(
-                details.sex,
-                details.age,
-                details.height_cm,
-                details.weight_kg,
-                details.activity_level,
-                details.calorie_plan,
-            )
+            manual_goal = _to_int(request.POST.get('goal_calories'), None)
+            if manual_goal is None:
+                details.goal_calories = _calculate_goal_calories(
+                    details.sex,
+                    details.age,
+                    details.height_cm,
+                    details.weight_kg,
+                    details.activity_level,
+                    details.calorie_plan,
+                )
+            else:
+                details.goal_calories = max(1000, manual_goal)
 
             details.save()
 
