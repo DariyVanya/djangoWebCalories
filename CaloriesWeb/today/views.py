@@ -80,40 +80,25 @@ def _recommended_macros(details):
         return None
 
     goal_calories = getattr(details, "goal_calories", 0) or 0
-    weight_kg = getattr(details, "weight_kg", 0) or 0
 
-    if goal_calories <= 0 or weight_kg <= 0:
+    if goal_calories <= 0:
         return None
 
     plan = getattr(details, "calorie_plan", "maintain")
-    if plan == "cut":
-        protein_per_kg = 2.0
-        fat_per_kg = 0.8
-    elif plan == "bulk":
-        protein_per_kg = 1.8
-        fat_per_kg = 1.0
-    else:
-        protein_per_kg = 1.6
-        fat_per_kg = 0.9
+    macro_shares = {
+        "bulk": {"protein": 0.30, "carbs": 0.55, "fats": 0.15},
+        "maintain": {"protein": 0.30, "carbs": 0.50, "fats": 0.20},
+        "cut": {"protein": 0.30, "carbs": 0.60, "fats": 0.10},
+    }
+    shares = macro_shares.get(plan, macro_shares["maintain"])
 
-    protein_g = weight_kg * protein_per_kg
-    fat_g = weight_kg * fat_per_kg
-    protein_kcal = protein_g * 4
-    fat_kcal = fat_g * 9
-
-    if protein_kcal + fat_kcal > goal_calories:
-        total = protein_kcal + fat_kcal
-        scale = goal_calories / total if total else 0
-        protein_g *= scale
-        fat_g *= scale
-        carbs_g = 0
-    else:
-        carbs_kcal = goal_calories - protein_kcal - fat_kcal
-        carbs_g = carbs_kcal / 4
+    protein_g = (goal_calories * shares["protein"]) / 4
+    carbs_g = (goal_calories * shares["carbs"]) / 4
+    fats_g = (goal_calories * shares["fats"]) / 9
 
     return {
         "protein": round(protein_g),
-        "fats": round(fat_g),
+        "fats": round(fats_g),
         "carbs": round(carbs_g),
         "calories": round(goal_calories),
     }

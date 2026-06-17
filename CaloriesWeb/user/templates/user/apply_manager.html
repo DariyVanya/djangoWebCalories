@@ -24,21 +24,45 @@
         </div>
     {% endif %}
 
+    {% if form_errors %}
+        <div class="today-warning" style="margin-bottom: 16px;">
+            <div class="today-warning-body">
+                <strong>Перевірте поля форми</strong>
+                <div class="today-warning-list">
+                    {% for field, error in form_errors.items %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     <section class="user-profile-card">
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="user-profile-list">
                 <div class="user-profile-item">
                     <strong>ПІБ</strong>
-                    <input type="text" name="full_name" class="form-control" placeholder="Введіть повне ім'я" required>
+                    <input type="text" name="full_name" class="form-control" placeholder="Введіть повне ім'я" value="{{ form_values.full_name }}" required>
+                    {% if form_errors.full_name %}<small class="text-danger">{{ form_errors.full_name }}</small>{% endif %}
                 </div>
                 <div class="user-profile-item">
                     <strong>Телефон</strong>
-                    <input type="text" name="phone" class="form-control" placeholder="+380..." required>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <select id="country_code" name="country_code" class="form-select" style="width: 180px; min-width: 180px;">
+                            <option value="+380" {% if form_values.country_code == '+380' %}selected{% endif %}>Ukraine +380</option>
+                            <option value="+1" {% if form_values.country_code == '+1' %}selected{% endif %}>USA +1</option>
+                            <option value="+44" {% if form_values.country_code == '+44' %}selected{% endif %}>UK +44</option>
+                            <option value="+48" {% if form_values.country_code == '+48' %}selected{% endif %}>Poland +48</option>
+                        </select>
+                        <input type="tel" id="phone" name="phone" class="form-control" placeholder="(__) ___-__-__" value="{{ form_values.phone }}" inputmode="tel" autocomplete="tel" required>
+                    </div>
+                    {% if form_errors.phone %}<small class="text-danger">{{ form_errors.phone }}</small>{% endif %}
                 </div>
                 <div class="user-profile-item">
                     <strong>Чому вас мають прийняти</strong>
-                    <textarea name="motivation" class="form-control" rows="4" placeholder="Опишіть мотивацію" required></textarea>
+                    <textarea name="motivation" class="form-control" rows="4" placeholder="Опишіть мотивацію" required>{{ form_values.motivation }}</textarea>
+                    {% if form_errors.motivation %}<small class="text-danger">{{ form_errors.motivation }}</small>{% endif %}
                 </div>
                 <div class="user-profile-item">
                     <strong>Резюме (опціонально)</strong>
@@ -53,4 +77,100 @@
             </div>
         </form>
     </section>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const phoneInput = document.getElementById("phone");
+        const countrySelect = document.getElementById("country_code");
+
+        if (!phoneInput || !countrySelect) return;
+
+        const countryConfig = {
+            "+380": { len: 9, groups: [2, 3, 2, 2], placeholder: "(__) ___-__-__" },
+            "+1": { len: 10, groups: [3, 3, 4], placeholder: "(___) ___-____" },
+            "+44": { len: 10, groups: [4, 3, 3], placeholder: "(____) ___-___" },
+            "+48": { len: 9, groups: [3, 3, 3], placeholder: "___ ___ ___" },
+        };
+
+        function formatByGroups(localDigits, groups) {
+            const chunks = [];
+            let index = 0;
+            for (const size of groups) {
+                const chunk = localDigits.slice(index, index + size);
+                if (!chunk) break;
+                chunks.push(chunk);
+                index += size;
+            }
+
+            if (groups.length === 4) {
+                if (!chunks.length) return "";
+                let value = `(${chunks[0]}`;
+                if (chunks[0].length === groups[0]) value += ")";
+                if (chunks[1]) value += ` ${chunks[1]}`;
+                if (chunks[2]) value += `-${chunks[2]}`;
+                if (chunks[3]) value += `-${chunks[3]}`;
+                return value;
+            }
+
+            if (groups.length === 3 && groups[0] === 3 && groups[2] === 4) {
+                if (!chunks.length) return "";
+                let value = `(${chunks[0]}`;
+                if (chunks[0].length === groups[0]) value += ")";
+                if (chunks[1]) value += ` ${chunks[1]}`;
+                if (chunks[2]) value += `-${chunks[2]}`;
+                return value;
+            }
+
+            if (groups.length === 3 && groups[0] === 4) {
+                if (!chunks.length) return "";
+                let value = `(${chunks[0]}`;
+                if (chunks[0].length === groups[0]) value += ")";
+                if (chunks[1]) value += ` ${chunks[1]}`;
+                if (chunks[2]) value += `-${chunks[2]}`;
+                return value;
+            }
+
+            return chunks.join(" ");
+        }
+
+        function formatPhoneForCountry(cc, value) {
+            const cfg = countryConfig[cc] || countryConfig["+380"];
+            const ccDigits = cc.replace("+", "");
+            let digits = value.replace(/\D/g, "");
+
+            if (digits.startsWith(ccDigits)) {
+                digits = digits.slice(ccDigits.length);
+            }
+            if (digits.startsWith("0")) {
+                digits = digits.slice(1);
+            }
+
+            const local = digits.slice(0, cfg.len);
+            return formatByGroups(local, cfg.groups);
+        }
+
+        function refresh() {
+            const cc = countrySelect.value || '+380';
+            const cfg = countryConfig[cc] || countryConfig["+380"];
+            phoneInput.placeholder = cfg.placeholder;
+            phoneInput.value = formatPhoneForCountry(cc, phoneInput.value);
+        }
+
+        // initialize
+        refresh();
+
+        countrySelect.addEventListener('change', () => {
+            // when country changes, reformat and keep cursor at end
+            refresh();
+            phoneInput.focus();
+            phoneInput.setSelectionRange(phoneInput.value.length, phoneInput.value.length);
+        });
+
+        phoneInput.addEventListener('input', () => {
+            const cc = countrySelect.value || '+380';
+            phoneInput.value = formatPhoneForCountry(cc, phoneInput.value);
+            phoneInput.setSelectionRange(phoneInput.value.length, phoneInput.value.length);
+        });
+    });
+    </script>
 {% endblock %}

@@ -1,3 +1,5 @@
+import re
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from main.models import UserDetails
@@ -9,6 +11,14 @@ CALORIE_PLAN_SHIFT = {
     'cut': -250,
     'maintain': 0,
     'bulk': 250,
+}
+
+PHONE_PATTERN = re.compile(r'^\+\d{7,15}$')
+COUNTRY_PHONE_RULES = {
+    "+380": 9,
+    "+1": 10,
+    "+44": 10,
+    "+48": 9,
 }
 
 
@@ -34,6 +44,13 @@ def _to_float(value, fallback):
 
 def _round_to_nearest_hundred(value):
     return int(round(value / 100.0) * 100)
+
+
+def _normalize_phone(value):
+    normalized = re.sub(r'[\s\-\(\)]', '', str(value or '').strip())
+    if normalized.startswith('380') and not normalized.startswith('+'):
+        normalized = f'+{normalized}'
+    return normalized
 
 
 
@@ -143,26 +160,68 @@ def apply_manager(request):
         manager_request_allowed = False
         reason = "Ваш запит вже на розгляді"
 
+    form_values = {
+        "full_name": "",
+        "phone": "",
+        "motivation": "",
+        "country_code": "+380",
+    }
+    form_errors = {}
+
     if request.method == "POST":
+        form_values = {
+            "full_name": (request.POST.get("full_name") or "").strip(),
+            "phone": (request.POST.get("phone") or "").strip(),
+            "motivation": (request.POST.get("motivation") or "").strip(),
+            "country_code": (request.POST.get("country_code") or "+380").strip(),
+        }
+
         if not manager_request_allowed:
             return render(request, "user/apply_manager.html", {
                 "details": details,
                 "manager_request_allowed": manager_request_allowed,
                 "reason": reason,
                 "last_request": last_request,
+                "form_values": form_values,
+                "form_errors": form_errors,
             })
 
-        full_name = (request.POST.get("full_name") or "").strip()
-        phone = (request.POST.get("phone") or "").strip()
-        motivation = (request.POST.get("motivation") or "").strip()
         resume = request.FILES.get("resume")
 
-        if full_name and phone and motivation:
+        # build normalized phone using selected country code
+        selected_cc = form_values.get("country_code", "+380")
+        required_local_len = COUNTRY_PHONE_RULES.get(selected_cc)
+        if not required_local_len:
+            form_errors["phone"] = "Оберіть коректний код країни."
+
+        digits = re.sub(r'\D', '', form_values["phone"])
+        cc_digits = selected_cc.lstrip('+')
+        if digits.startswith(cc_digits):
+            digits = digits[len(cc_digits):]
+
+        # allow domestic-style leading zero, store canonical international form
+        if digits.startswith('0'):
+            digits = digits[1:]
+
+        final_phone = f'+{cc_digits}{digits}' if digits else ''
+
+        if not form_values["full_name"]:
+            form_errors["full_name"] = "Вкажіть ПІБ."
+        if required_local_len and len(digits) != required_local_len:
+            form_errors["phone"] = f"Для обраної країни потрібно {required_local_len} цифр номера."
+        elif final_phone and not PHONE_PATTERN.fullmatch(final_phone):
+            form_errors["phone"] = "Вкажіть коректний міжнародний номер."
+        elif not final_phone:
+            form_errors["phone"] = "Вкажіть номер телефону."
+        if not form_values["motivation"]:
+            form_errors["motivation"] = "Опишіть мотивацію."
+
+        if not form_errors:
             ManagerRequest.objects.create(
                 user=request.user,
-                full_name=full_name,
-                phone=phone,
-                motivation=motivation,
+                full_name=form_values["full_name"],
+                phone=final_phone,
+                motivation=form_values["motivation"],
                 resume=resume,
                 status="pending",
             )
@@ -173,6 +232,8 @@ def apply_manager(request):
         "manager_request_allowed": manager_request_allowed,
         "reason": reason,
         "last_request": last_request,
+        "form_values": form_values,
+        "form_errors": form_errors,
     })
 
 
