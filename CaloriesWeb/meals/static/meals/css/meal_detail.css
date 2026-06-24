@@ -313,6 +313,51 @@
     margin-bottom: 6px;
 }
 
+.meal-comment-author {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.meal-comment-author-link {
+    color: var(--text-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.meal-comment-author-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.meal-comment-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.meal-comment-badge--manager {
+    background: rgba(var(--primary-rgb), 0.14);
+    color: var(--primary-dark);
+}
+
+.profile-user-link {
+    color: var(--primary-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.profile-user-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
 .meal-detail-submit:hover {
     transform: translateY(-2px);
     background: linear-gradient(135deg, var(--primary-dark) 0%, #37cb2a 100%);

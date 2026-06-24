@@ -16,7 +16,7 @@
     <section class="meal-detail-card">
         <h3>Дані страви</h3>
         <div class="meal-detail-meta">
-            <span><i class="fas fa-user"></i> Автор: {{ verification.author.username }}</span>
+            <span><i class="fas fa-user"></i> Автор: <a class="profile-user-link" href="{% url 'user:user_detail' verification.author.id %}">{{ verification.author.username }}</a></span>
             <span><i class="fas fa-weight"></i> {{ verification.grams }} г</span>
             <span><i class="fas fa-flag"></i> {{ verification.get_status_display }}</span>
         </div>
@@ -89,7 +89,7 @@
                 {% csrf_token %}
                 <textarea name="comment" class="meal-edit-input meal-edit-textarea" placeholder="Коментар"></textarea>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="meal-detail-submit" type="submit" name="action" value="approve">Одобрити</button>
+                    <button class="meal-detail-submit" type="submit" name="action" value="approve">Схвалити</button>
                     <button class="meal-detail-submit" type="submit" name="action" value="reject">Відхилити</button>
                     <button class="meal-detail-danger" type="submit" name="action" value="ban">Забанити</button>
                 </div>

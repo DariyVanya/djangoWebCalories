@@ -67,6 +67,25 @@ def _calculate_goal_calories(sex, age, height_cm, weight_kg, activity_level, cal
     return max(1000, _round_to_nearest_hundred(adjusted))
 
 
+def _streak_tier(days):
+    if days >= 365:
+        return "diamond"
+    if days >= 150:
+        return "gold"
+    if days >= 50:
+        return "silver"
+    return "bronze"
+
+
+def _streak_label(tier):
+    return {
+        "bronze": "Бронзовий",
+        "silver": "Срібний",
+        "gold": "Золотий",
+        "diamond": "Діамантовий",
+    }.get(tier, "Бронзовий")
+
+
 def user_details(request, user_id):
     details = get_object_or_404(UserDetails, user_id=user_id)
     manager_request = ManagerRequest.objects.filter(user=details.user).order_by("-created_at").first()
@@ -74,6 +93,9 @@ def user_details(request, user_id):
     verification_items = MealVerification.objects.filter(author=details.user).exclude(
         status="approved",
     ).order_by("-created_at")
+    is_own_profile = request.user.is_authenticated and request.user.id == details.user_id
+    current_streak_tier = _streak_tier(details.current_streak)
+    max_streak_tier = _streak_tier(details.max_streak)
 
     data = {
         'user_id': user_id,
@@ -81,6 +103,11 @@ def user_details(request, user_id):
         'manager_request': manager_request,
         'user_meals': user_meals,
         'verification_items': verification_items,
+        'is_own_profile': is_own_profile,
+        'current_streak_tier': current_streak_tier,
+        'current_streak_label': _streak_label(current_streak_tier),
+        'max_streak_tier': max_streak_tier,
+        'max_streak_label': _streak_label(max_streak_tier),
     }
 
     return render(request, 'user/user_details.html', data)

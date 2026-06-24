@@ -223,7 +223,14 @@
             {% for comment in comments %}
                 <div class="meal-comment">
                     <div class="meal-comment-header">
-                        <strong>{{ comment.user.username }}</strong>
+                        <div class="meal-comment-author">
+                            <a href="{% url 'user:user_detail' comment.user.id %}" class="meal-comment-author-link">
+                                {{ comment.user.username }}
+                            </a>
+                            {% if comment.user.details.role == "manager" %}
+                                <span class="meal-comment-badge meal-comment-badge--manager">Менеджер</span>
+                            {% endif %}
+                        </div>
                         <span>{{ comment.created_at|date:"d.m.Y H:i" }}</span>
                     </div>
                     <p>{{ comment.text }}</p>

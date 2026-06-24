@@ -26,7 +26,7 @@
                     </tr>
                     {% for req in requests %}
                         <tr>
-                            <td>{{ req.user.username }}<br>{{ req.full_name }}</td>
+                            <td><a class="profile-user-link" href="{% url 'user:user_detail' req.user.id %}">{{ req.user.username }}</a><br>{{ req.full_name }}</td>
                             <td>
                                 {{ req.phone }}<br>{{ req.user.email }}
                                 {% if req.resume %}

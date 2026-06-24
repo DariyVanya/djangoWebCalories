@@ -236,7 +236,7 @@ def meal_detail(request, meal_id):
         "grouped_tags_for_edit": grouped_tags_for_edit,
         "meal_tag_ids": meal_tag_ids,
         "pending_verification": pending_verification,
-        "comments": MealComment.objects.filter(meal=meal).select_related("user").order_by("-created_at"),
+        "comments": MealComment.objects.filter(meal=meal).select_related("user", "user__details").order_by("-created_at"),
         "user_details": user_details,
     }
     print(data)

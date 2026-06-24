@@ -27,7 +27,7 @@
                     {% for item in pending_items %}
                         <tr>
                             <td>{{ item.name }}</td>
-                            <td>{{ item.author.username }}</td>
+                            <td><a class="profile-user-link" href="{% url 'user:user_detail' item.author.id %}">{{ item.author.username }}</a></td>
                             <td>{% if item.original_meal %}Оновлення{% else %}Нова{% endif %}</td>
                             <td>{{ item.created_at|date:"d.m.Y H:i" }}</td>
                             <td>

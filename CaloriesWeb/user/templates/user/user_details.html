@@ -42,15 +42,17 @@
             {% endif %}
 
             <div class="profile-stats">
-                <div class="profile-stat">
-                    <span>Поточна серія</span>
+                <div class="profile-stat streak-frame streak-frame--current streak-frame--{{ current_streak_tier }}">
+                    <span class="streak-frame__label">{% if is_own_profile %}Ваш теперішній стрік{% else %}Теперішній стрік{% endif %}</span>
                     <strong>{{ details.current_streak }} днів</strong>
+                    <span class="streak-frame__tag">{{ current_streak_label }}</span>
                 </div>
-                <div class="profile-stat">
-                    <span>Максимальна серія</span>
+                <div class="profile-stat streak-frame streak-frame--max streak-frame--{{ max_streak_tier }}">
+                    <span class="streak-frame__label">{% if is_own_profile %}Ваш максимальний стрік{% else %}Максимальний стрік{% endif %}</span>
                     <strong>{{ details.max_streak }} днів</strong>
+                    <span class="streak-frame__tag">{{ max_streak_label }}</span>
                 </div>
-                <div class="profile-stat">
+                <div class="profile-stat profile-stat--goal">
                     <span>Цільові калорії</span>
                     <strong>{{ details.goal_calories }} ккал</strong>
                 </div>
@@ -72,7 +74,7 @@
                 </section>
 
                 <section class="user-profile-card">
-                    <h3>Мої страви</h3>
+                    <h3>{% if is_own_profile %}Мої страви{% else %}Страви користувача{% endif %}</h3>
                     {% if user_meals %}
                         <div class="profile-list" id="user-meals-list" data-max-items="8">
                             {% for meal in user_meals %}
@@ -95,42 +97,44 @@
                     {% endif %}
                 </section>
 
-                <section class="user-profile-card">
-                    <h3>Страви на верифікації</h3>
-                    {% if verification_items %}
-                        <div class="profile-list" id="verification-list" data-max-items="8">
-                            {% for item in verification_items %}
-                                <div class="profile-list-item profile-list-item--static">
-                                    <span>{{ item.name }}</span>
-                                    <span class="status-chip status-chip--{{ item.status }}">{{ item.get_status_display }}</span>
-                                </div>
-                            {% endfor %}
-                        </div>
-                        {% if verification_items|length > 8 %}
-                            <button type="button" class="btn btn-outline-secondary profile-show-more" data-target="verification-list">
-                                Показати більше
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary profile-show-less" data-target="verification-list" style="display: none;">
-                                Приховати
-                            </button>
+                {% if is_own_profile %}
+                    <section class="user-profile-card">
+                        <h3>Страви на верифікації</h3>
+                        {% if verification_items %}
+                            <div class="profile-list" id="verification-list" data-max-items="8">
+                                {% for item in verification_items %}
+                                    <div class="profile-list-item profile-list-item--static">
+                                        <span>{{ item.name }}</span>
+                                        <span class="status-chip status-chip--{{ item.status }}">{{ item.get_status_display }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if verification_items|length > 8 %}
+                                <button type="button" class="btn btn-outline-secondary profile-show-more" data-target="verification-list">
+                                    Показати більше
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary profile-show-less" data-target="verification-list" style="display: none;">
+                                    Приховати
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <p>Немає страв на перевірці.</p>
                         {% endif %}
-                    {% else %}
-                        <p>Немає страв на перевірці.</p>
-                    {% endif %}
-                </section>
+                    </section>
 
-                <section class="user-profile-card">
-                    <h3>Запит на роль менеджера</h3>
-                    {% if manager_request %}
-                        <div class="profile-kv"><span>Статус</span><strong>{{ manager_request.get_status_display }}</strong></div>
-                        <div class="profile-kv"><span>Дата подачі</span><strong>{{ manager_request.created_at|date:"d.m.Y" }}</strong></div>
-                        {% if manager_request.admin_comment %}
-                            <div class="profile-kv profile-kv--full"><span>Коментар</span><strong>{{ manager_request.admin_comment }}</strong></div>
+                    <section class="user-profile-card">
+                        <h3>Запит на роль менеджера</h3>
+                        {% if manager_request %}
+                            <div class="profile-kv"><span>Статус</span><strong>{{ manager_request.get_status_display }}</strong></div>
+                            <div class="profile-kv"><span>Дата подачі</span><strong>{{ manager_request.created_at|date:"d.m.Y" }}</strong></div>
+                            {% if manager_request.admin_comment %}
+                                <div class="profile-kv profile-kv--full"><span>Коментар</span><strong>{{ manager_request.admin_comment }}</strong></div>
+                            {% endif %}
+                        {% else %}
+                            <p>Запит ще не подано.</p>
                         {% endif %}
-                    {% else %}
-                        <p>Запит ще не подано.</p>
-                    {% endif %}
-                </section>
+                    </section>
+                {% endif %}
             </div>
         {% else %}
             <div class="today-locked">
